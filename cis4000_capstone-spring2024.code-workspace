@@ -3,5 +3,21 @@
 		{
 			"path": "."
 		}
-	]
+	],
+	"settings": {
+		"cSpell.words": [
+			"bson",
+			"chrono",
+			"compat",
+			"creds",
+			"moka",
+			"navmenu",
+			"serde",
+			"serialisation",
+			"tera",
+			"thiserror",
+			"tungstenite",
+			"webauthn"
+		]
+	}
 }

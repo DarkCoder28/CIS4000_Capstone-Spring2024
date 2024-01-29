@@ -1,0 +1,135 @@
+{% extends "base.html" %} 
+{% block title %}Login | The Sheerans' Recipe Book{% endblock title %} 
+{% block extra_styles %}
+<link rel="stylesheet" href="/static/css/auth.css" />
+<link rel="stylesheet" href="/static/css/modal.css" />
+<script
+  src="https://cdn.jsdelivr.net/npm/js-base64@3.7.4/base64.min.js"
+  integrity="sha384-VkKbwLiG7C18stSGuvcw9W0BHk45Ba7P9LJG5c01Yo4BI6qhFoWSa9TQLNA6EOzI"
+  crossorigin="anonymous"
+></script>
+<script 
+  src="https://cdn.jsdelivr.net/npm/masonry-layout@4.2.2/dist/masonry.pkgd.min.js" 
+  integrity="sha384-GNFwBvfVxBkLMJpYMOABq3c+d3KnQxudP/mGPkzpZSTYykLBNsZEnG2D9G/X/+7D" 
+  crossorigin="anonymous" 
+  async
+></script>
+<script src="/static/scripts/auth.js" async></script>
+{% endblock extra_styles %} 
+{% block content %}
+<div class="h-100 w-100 bg-secondary bg-gradient">
+  {% if not user %}
+  <div class="h-100 container d-flex align-items-center">
+    <div class="row w-100 flex-column align-items-center">
+      <div class="col-auto">
+        <div class="card text-center">
+          <div class="form-signin">
+            <img class="mb-4" src="/static/images/favicon.png" alt="" width="72" height="72" />
+            <h1 class="h3 mb-3 font-weight-normal">Please sign in</h1>
+            <div class="form-floating">
+              <input type="text" class="form-control" id="username" placeholder="username">
+              <label for="username">Username</label>
+            </div>
+            <div class="row py-2">
+              <button class="btn btn-primary mb-1" id="login">Sign in</button>
+              <button class="btn btn-secondary" id="register">Register</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% else %}
+  <div class="container p-5">
+    <div class="row" data-masonry='{"percentPosition": true }'>
+      <div class="col-sm-6 col-lg-4 mb-4"> {# Username Card #}
+        <div class="card">
+          <div class="card-body">
+            <h5 class="card-title">Welcome,</h5>
+            <p class="card-text" style="font-size: 1.5rem;">{{ user.username }}</p>
+            {# <p class="card-text"><small class="text-body-secondary">Last updated 3 mins ago</small></p> #}
+          </div>
+        </div>
+      </div>
+      {% if scraper %}
+      <div class="col-sm-6 col-lg-4 mb-4"> {# Uploader Email Card #}
+        <div class="card">
+          <div class="card-body">
+            <h5 class="card-title">Uploader Email</h5>
+            <div>
+              <div class="form-floating">
+                <input type="email" class="form-control" id="uploader-email" placeholder="username@example.com" value="{{ user.uploader_email }}">
+                <label for="uploader-email">Email Address</label>
+              </div>
+              <div>
+                <button class="btn btn-primary" id="update-uploader">Update</button>
+              </div>
+            </div>
+            <p class="card-text mt-2 mb-0">Scraper Email:</p>
+            <div class="px-2 mt-0 mb-2">{{ scraper }}</div>
+            <p class="card-text"><small class="text-body-secondary">Used when sending external recipe links to the scraper.</small></p>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+      <div class="col-auto mb-4"> {# Logout Card #}
+        <div class="card">
+          <div class="card-body">
+            <button class="btn btn-danger" onclick="logout()">Logout</button>
+            {# <p class="card-text"><small class="text-body-secondary">Last updated 3 mins ago</small></p> #}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock content %} 
+{#
+<div class="card-item">
+  <div class="title mb-2">Welcome,</div>
+  <div style="height: 1rem"></div>
+  <div class="row mb-3">
+    {# Username Field # }
+    <div class="w-100 d-flex flex-row space-even">
+      <p style="font-size: 2rem">{{ username }}</p>
+    </div>
+  </div>
+  <div class="row mb-3 space-even">
+    {# Login/Register Buttons # }
+    <div class="col-auto">
+      <button class="btn btn-danger" onclick="logout()">Logout</button>
+    </div>
+  </div>
+</div>
+#}
+
+
+
+{#
+<div class="card-item">
+  <div class="title mb-2">Login</div>
+  <div class="row mb-3">
+    {# Username Field # }
+    <div class="w-100">
+      <input
+        type="text"
+        class="form-control"
+        id="username"
+        placeholder="Username"
+      />
+    </div>
+  </div>
+  <div class="row mb-3 space-even">
+    {# Login/Register Buttons # }
+    <div class="col-auto">
+      <button class="btn btn-primary" onclick="login()">Login</button>
+    </div>
+    <div class="col-auto">
+      <button class="btn btn-secondary" onclick="register()">
+        Register
+      </button>
+    </div>
+  </div>
+</div>
+#}

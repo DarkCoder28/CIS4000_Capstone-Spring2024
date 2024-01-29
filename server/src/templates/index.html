@@ -1,0 +1,94 @@
+{% extends "base.html" %} {% block extra_styles %}
+<link rel="stylesheet" href="/static/css/index.css" />
+<link rel="stylesheet" href="/static/css/buttons.css" />
+{% endblock extra_styles %} {% block content %}
+<div class="idx_page">
+  <div class="idx_top-row px-4 d-flex flex-row">
+    <div class="idx_header flex-fill @shouldnotshowsearch">
+      <p style="font-size: 2rem;">The Sheerans Recipe Book</p>
+    </div>
+    <div class="d-flex flex-row">
+      <button class="btn btn-secondary idx_search toggleSearchClicker" role="button">Search</button>
+      <form onsubmit="return false" class="@shouldshowsearch" id="search_form">
+        <input type="text" id="SearchTerm" />
+        <input type="submit" value="Search" />
+      </form>
+    </div>
+  </div>
+  <div class="idx_top-row-spacer"></div>
+  <div class="idx_content d-flex flex-column">
+    <div class="recipes">
+      {% for recipe in recipes %}
+      <div
+        id="{% filter lower %}{{recipe.Name}} {% for tag in recipe.Tags%}{{tag}} {%endfor%}{% endfilter %}"
+        class="recipe d-flex flex-row pt-4 pb-4 px-2"
+      >
+        {# Using ID for sort function #}
+        <div class="img-container d-flex flex-column justify-content-center">
+          <img
+            role="img"
+            class="img idx_tmb"
+            src="{%if recipe.CoverImage %}/api/images/{{recipe.CoverImage}}{% else %}/static/images/favicon.png{% endif %}"
+          />
+        </div>
+        <div style="width: 1rem"></div>
+        <div class="d-flex flex-column">
+          <h3><a href="/recipe/{{recipe.RecipeID}}">{{recipe.Name}}</a></h3>
+          <p>{{recipe.Description}}</p>
+          {% if recipe.Tags | length > 0 %}
+          <p class="mb-0">
+            Tags: {% for tag in recipe.Tags%} {{tag}}{% if not loop.last %},{%
+            endif %} {%endfor%}
+          </p>
+          {% endif %}
+        </div>
+      </div>
+      {% if not loop.last %}
+      <div class="idx_bar"></div>
+      {% endif %} {% endfor %}
+    </div>
+    {% set show_back_btn = page > 1 %}
+    {% set show_next_btn = page < totalPages %}
+    {% set show_back_or_next_btn = show_back_btn or show_next_btn %}
+    {% set show_back_and_next_btn = show_back_btn and show_next_btn %}
+    <div class="controls d-flex align-items-center {% if show_back_or_next_btn and not show_back_and_next_btn %}flex-row{% else %}flex-column{% endif %}">
+      {% if page > 1 and not page < totalPages %}
+      <div class="btn-container btn-back arrows-block m-1">
+        <a href="/{{page-1}}" class="page-numbers">&lt;</a>
+      </div>
+      {% endif %}
+      <div class="btn-container btn-numbers">
+        {# Back Button #}
+        {% if page > 1 %}<a href="/{{page-1}}" class="page-numbers arrows-inline" style="color: white;">&lt;</a>{% endif %}
+        {% if page > 6 %}
+          <a class="page-numbers" href="/1">1</a>
+        {% endif %}
+        {% for i in [-5,-4,-3,-2,-1,0,1,2,3,4,5] %}
+          {% if page+i < totalPages and page+i > 0 %}
+            <a class="page-numbers{%if page==page+i%} current{%endif%}" href="/{{page+i}}">{{page+i}}</a>
+          {% endif %}
+        {% endfor %}
+        <a class="page-numbers{%if page==totalPages%} current{%endif%}" href="/{{totalPages}}">{{totalPages}}</a>
+        {# Next Button #}
+        {% if page < totalPages %}<a href="/{{page+1}}" class="page-numbers arrows-inline" style="color: white;">&gt;</a>{% endif %}
+      </div>
+      {% if page < totalPages and not page > 1 %}
+      <div class="btn-container btn-next arrows-block m-1">
+        <a href="/{{page+1}}" class="page-numbers">&gt;</a>
+      </div>
+      {% endif %}
+      {% if page > 1 and page < totalPages %}
+      <div class="d-flex flex-row justify-content-center w-100 arrows-block">
+        <div class="btn-container btn-back m-1">
+          <a href="/{{page-1}}" class="page-numbers">&lt;</a>
+        </div>
+        <div class="btn-container btn-next m-1">
+          <a href="/{{page+1}}" class="page-numbers">&gt;</a>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+<script src="/static/scripts/index.js"></script>
+{% endblock content %}

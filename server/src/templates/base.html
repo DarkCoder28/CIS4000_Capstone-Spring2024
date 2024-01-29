@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en" class="h-100">
+<head>
+    <meta charset="utf-8">
+    <title>{% block title %}The Sheerans' Recipe Book{% endblock title %}</title>
+    <meta name="description" content="The Sheeran Recipe Book.">
+    <meta name="author" content="Aiden Sheeran">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- <link rel="stylesheet" href="/static/css/normalize.css"> -->
+    <link rel="stylesheet" href="/static/css/bootstrap/bootstrap.min.css"/>
+    <link rel="stylesheet" href="/static/css/styles.css">
+    {% block extra_styles %}{% endblock extra_styles %}
+    <link rel="icon" type="image/png" href="/static/images/favicon.png">
+</head>
+<body class="h-100">
+  <div class="page h-100">
+    <div class="header-bar d-flex flex-column">
+      {% include "navmenu.html" %}
+      <!-- NavMenu -->
+    </div>
+    <main class="h-100 overflow-auto">
+      <article id="main-content" class="h-100">
+          {% block content %}{% endblock content %}
+      </article>
+    </main>
+  </div>
+</body>
+</html>

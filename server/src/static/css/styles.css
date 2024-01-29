@@ -1,0 +1,56 @@
+/* @import url('open-iconic/font/css/open-iconic-bootstrap.min.css'); */
+@import url("https://cdnjs.cloudflare.com/ajax/libs/open-iconic/1.1.1/font/css/open-iconic-bootstrap.min.css");
+@import url("https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.2/font/bootstrap-icons.css");
+@import url("/static/css/navmenu.css");
+
+html, body {
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+}
+
+h1:focus {
+    outline: none;
+}
+
+a, .btn-link {
+    color: #0071c1;
+}
+
+.btn-primary {
+    color: #fff;
+    background-color: #1b6ec2;
+    border-color: #1861ac;
+}
+
+.content {
+    padding-top: 1.1rem;
+}
+
+.active-page {
+    color: lime !important;
+}
+
+.page {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+main {
+    flex: 1;
+}
+
+.nodisplay {
+    display: none;
+}
+
+@media (min-width: 641px) {
+    .page {
+        flex-direction: row;
+    }
+}
+
+.header-bar {
+    position: absolute;
+    top: 0;
+    right: 0;
+}

@@ -1,5 +1,5 @@
 [package]
-name = "cis4000_capstone-spring2024"
+name = "cis4000_capstone-spring2024_client"
 version = "0.1.0"
 edition = "2021"
 

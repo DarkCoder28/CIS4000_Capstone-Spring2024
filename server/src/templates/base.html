@@ -2,8 +2,8 @@
 <html lang="en" class="h-100">
 <head>
     <meta charset="utf-8">
-    <title>{% block title %}The Sheerans' Recipe Book{% endblock title %}</title>
-    <meta name="description" content="The Sheeran Recipe Book.">
+    <title>{% block title %}Capstone Game{% endblock title %}</title>
+    <meta name="description" content="Capstone Game">
     <meta name="author" content="Aiden Sheeran">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <!-- <link rel="stylesheet" href="/static/css/normalize.css"> -->
@@ -14,11 +14,11 @@
 </head>
 <body class="h-100">
   <div class="page h-100">
-    <div class="header-bar d-flex flex-column">
+    <div class="header-bar d-flex flex-row w-100">
       {% include "navmenu.html" %}
       <!-- NavMenu -->
     </div>
-    <main class="h-100 overflow-auto">
+    <main class="h-100 overflow-hidden">
       <article id="main-content" class="h-100">
           {% block content %}{% endblock content %}
       </article>

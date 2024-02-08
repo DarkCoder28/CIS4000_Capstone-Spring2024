@@ -1,5 +1,5 @@
 {% extends "base.html" %} 
-{% block title %}Login | The Sheerans' Recipe Book{% endblock title %} 
+{% block title %}Login | Capstone Game{% endblock title %} 
 {% block extra_styles %}
 <link rel="stylesheet" href="/static/css/auth.css" />
 <link rel="stylesheet" href="/static/css/modal.css" />
@@ -42,6 +42,15 @@
   {% else %}
   <div class="container p-5">
     <div class="row" data-masonry='{"percentPosition": true }'>
+      <div class="col-auto mb-4"> {# Home Card #}
+        <div class="card">
+          <div class="card-body">
+            <h5>Back to the Game</h5>
+            <button class="btn btn-primary margin-auto" id="home">Back</button>
+            {# <p class="card-text"><small class="text-body-secondary">Last updated 3 mins ago</small></p> #}
+          </div>
+        </div>
+      </div>
       <div class="col-sm-6 col-lg-4 mb-4"> {# Username Card #}
         <div class="card">
           <div class="card-body">
@@ -51,31 +60,10 @@
           </div>
         </div>
       </div>
-      {% if scraper %}
-      <div class="col-sm-6 col-lg-4 mb-4"> {# Uploader Email Card #}
-        <div class="card">
-          <div class="card-body">
-            <h5 class="card-title">Uploader Email</h5>
-            <div>
-              <div class="form-floating">
-                <input type="email" class="form-control" id="uploader-email" placeholder="username@example.com" value="{{ user.uploader_email }}">
-                <label for="uploader-email">Email Address</label>
-              </div>
-              <div>
-                <button class="btn btn-primary" id="update-uploader">Update</button>
-              </div>
-            </div>
-            <p class="card-text mt-2 mb-0">Scraper Email:</p>
-            <div class="px-2 mt-0 mb-2">{{ scraper }}</div>
-            <p class="card-text"><small class="text-body-secondary">Used when sending external recipe links to the scraper.</small></p>
-          </div>
-        </div>
-      </div>
-      {% endif %}
       <div class="col-auto mb-4"> {# Logout Card #}
         <div class="card">
           <div class="card-body">
-            <button class="btn btn-danger" onclick="logout()">Logout</button>
+            <button class="btn btn-danger" id="logout">Logout</button>
             {# <p class="card-text"><small class="text-body-secondary">Last updated 3 mins ago</small></p> #}
           </div>
         </div>

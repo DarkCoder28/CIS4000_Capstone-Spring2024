@@ -2,9 +2,10 @@ use axum::{
     response::Response,
     extract::{WebSocketUpgrade, ws::{WebSocket, Message::Text}, State}
 };
-use futures_util::{SinkExt, StreamExt};
+// use futures_util::{SinkExt, StreamExt};
 // use serde::Serialize;
 use tower_cookies::Cookies;
+use tracing::info;
 
 use crate::state::AppState;
 
@@ -15,9 +16,24 @@ pub async fn ws_session_handler(cookies: Cookies, ws: WebSocketUpgrade, State(st
     ws.on_upgrade(|socket| handle_socket(socket, state))
 }
 
-async fn handle_socket(socket: WebSocket, _state: AppState) -> () {
-    let (mut send, mut _rec) = socket.split();
-    let _ = send.send(Text("Hello".to_string())).await;
+async fn handle_socket(mut socket: WebSocket, _state: AppState) -> () {
+    let _ = socket.send(Text("Hello".to_string())).await;
+    while let Some(msg) = socket.recv().await {
+        match msg {
+            Ok(msg) => {
+                let msg = msg.to_text().unwrap_or("");
+                info!(msg);
+                if socket.send(Text(String::from("Echo: ") + msg)).await.is_err() {
+                    // Client Disconnected
+                    return;
+                }
+            },
+            Err(_) => {
+                // Client Disconnected
+                return;
+            }
+        }
+    }
     //
     // while let Some(msg) = socket.recv().await {
     //     match msg {

@@ -1,6 +1,6 @@
 #!/bin/bash
-rm ./recipe-book.tar
+rm ./cis4000.tar
 ./build.sh
-docker build -t recipe-book:latest .
-docker image save -o recipe-book.tar recipe-book:latest
-docker image rm recipe-book:latest
+docker build -t cis4000:latest .
+docker image save -o cis4000.tar cis4000:latest
+docker image rm cis4000:latest

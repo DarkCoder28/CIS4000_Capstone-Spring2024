@@ -96,32 +96,6 @@ async function login() {
     });
 }
 
-async function update_uploader() {
-    let new_email = document.getElementById("uploader-email").value;
-    fetch("/api/auth/update_email", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-            new_email,
-        }),
-    }).then((response) => {
-        if (response.ok) {
-            errorModal(
-                "Update Success",
-                "Successfully updated email! Reloading in 1...",
-                "btn-primary"
-            );
-            setTimeout(() => {
-                location.reload();
-            }, 1000);
-        } else {
-            errorModal("Login Error", "Error whilst updating email in!");
-        }
-    });
-}
-
 async function logout() {
     fetch('/api/auth/logout', {
         method: 'POST'
@@ -130,17 +104,26 @@ async function logout() {
     });
 }
 
+async function home() {
+    location.href = "/";
+}
+
 let login_btn = document.getElementById("login");
 let register_btn = document.getElementById("register");
-let update_uploader_btn = document.getElementById("update-uploader");
+let logout_btn = document.getElementById("logout");
+let home_btn = document.getElementById("home");
+
 if (login_btn != null && login_btn != undefined) {
     login_btn.addEventListener("click", login);
 }
 if (register_btn != null && register_btn != undefined) {
     register_btn.addEventListener("click", register);
 }
-if (update_uploader_btn != null && update_uploader_btn != undefined) {
-    update_uploader_btn.addEventListener("click", update_uploader);
+if (logout_btn != null && logout_btn != undefined) {
+    logout_btn.addEventListener("click", logout);
+}
+if (home_btn != null && home_btn != undefined) {
+    home_btn.addEventListener("click", home);
 }
 
 // Error Modal
@@ -190,5 +173,5 @@ async function errorModal(title, error, ok_colour_class = "btn-danger") {
     dialog.appendChild(content);
     modal.appendChild(dialog);
     container.appendChild(modal);
-    document.documentElement.lastElementChild.appendChild(container);
+    document.body.appendChild(container);
 }

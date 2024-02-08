@@ -5,7 +5,6 @@ use axum::{
 };
 use tera::Context;
 use tower_cookies::Cookies;
-use std::env;
 
 use crate::{data::TEMPLATES, state::AppState};
 
@@ -14,7 +13,6 @@ pub async fn serve_auth(cookies: Cookies, State(state): State<AppState>) -> Resp
     //
     let mut context = Context::new();
     context.insert("user", &uploader);
-    context.insert("scraper", &env::var("SCRAPER_EMAIL").unwrap_or(String::from("")));
     let data = match TEMPLATES.render("auth.html", &context) {
         Ok(s) => s,
         Err(e) => {

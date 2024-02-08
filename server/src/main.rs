@@ -5,7 +5,7 @@ use axum::{
     Router, 
 };
 
-use cis4000_capstone_spring2024_server::{auth::{self, finish_authentication, finish_register, logout, start_authentication, start_register}, mongo::connect_mongo, routes::{handle_session_ws::ws_session_handler, serve_auth::serve_auth, serve_index::serve_index, static_files::{serve_robots, serve_static}}, state::AppState};
+use gwynedd_valley_server::{auth::{self, finish_authentication, finish_register, logout, start_authentication, start_register}, mongo::connect_mongo, routes::{handle_session_ws::ws_session_handler, serve_auth::serve_auth, serve_index::serve_index, static_files::{serve_robots, serve_static}}, state::AppState};
 use tower_cookies::CookieManagerLayer;
 use tower_sessions::{
     cookie::{time::Duration,SameSite},

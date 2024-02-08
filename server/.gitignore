@@ -20,3 +20,4 @@ recipe-book.tar
 
 # Other
 test.sh
+src/static/clients/*

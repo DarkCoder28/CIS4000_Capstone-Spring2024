@@ -8,8 +8,8 @@ cd $CLIENT_DIR
 cargo build --release --target x86_64-unknown-linux-gnu
 cargo build --release --target x86_64-pc-windows-gnu
 
-cp -f $CLIENT_DIR/target/x86_64-unknown-linux-gnu/release/cis4000_capstone-spring2024_client $SCRIPT_DIR/src/static/clients/client-linux
-cp -f $CLIENT_DIR/target/x86_64-pc-windows-gnu/release/cis4000_capstone-spring2024_client.exe $SCRIPT_DIR/src/static/clients/client-windows.exe
+cp -f $CLIENT_DIR/target/x86_64-unknown-linux-gnu/release/gwynedd_valley_client $SCRIPT_DIR/src/static/clients/gwynedd_valley_client-linux
+cp -f $CLIENT_DIR/target/x86_64-pc-windows-gnu/release/gwynedd_valley_client.exe $SCRIPT_DIR/src/static/clients/gwynedd_valley_client-windows.exe
 
 cd $SCRIPT_DIR
 MONGODB_URI="mongodb://192.168.1.64:27017" PK_ID="home.thesheerans.com" PK_ORIGIN="https://home.thesheerans.com:3333" cargo run

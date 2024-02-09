@@ -1,0 +1,29 @@
+{
+	"folders": [
+		{
+			"path": "./server/"
+		}
+	],
+	"settings": {
+		"cSpell.words": [
+			"bson",
+			"chrono",
+			"compat",
+			"creds",
+			"DARKGRAY",
+			"Deque",
+			"jsutils",
+			"macroquad",
+			"moka",
+			"navmenu",
+			"sapp",
+			"serde",
+			"serialisation",
+			"tera",
+			"thesheerans",
+			"thiserror",
+			"tungstenite",
+			"webauthn"
+		]
+	}
+}

@@ -1,17 +1,19 @@
 {
 	"folders": [
 		{
-			"path": "."
+			"path": "./client/"
 		}
 	],
 	"settings": {
 		"cSpell.words": [
 			"bson",
 			"chrono",
+			"combobox",
 			"compat",
 			"creds",
 			"DARKGRAY",
 			"Deque",
+			"editbox",
 			"jsutils",
 			"macroquad",
 			"moka",
@@ -22,6 +24,7 @@
 			"tera",
 			"thesheerans",
 			"thiserror",
+			"titlebar",
 			"tungstenite",
 			"webauthn"
 		]

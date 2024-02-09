@@ -1,11 +1,12 @@
 pub mod config;
 pub mod scenes;
+pub mod ui;
 
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use tracing::{info, error};
 
-use macroquad::prelude::*;
+use macroquad::{prelude::*, ui::root_ui};
 
 use directories::BaseDirs;
 use tungstenite::connect;
@@ -13,10 +14,10 @@ use url::Url;
 
 use crate::{
     config::load_servers, 
-    scenes::server_select::run_server_selector
+    scenes::server_select::run_server_selector, ui::theme::generate_theme
 };
 
-#[macroquad::main("Capstone Game")]
+#[macroquad::main("Gwynedd Valley")]
 async fn main() {
     // Setup Logging
     let tracing_sub = tracing_subscriber::FmtSubscriber::new();
@@ -31,6 +32,10 @@ async fn main() {
         config_path.push_str("capstone-game/");
     }
 
+    // Setup Theming
+    let _default_theme = Arc::new(Mutex::new(root_ui().default_skin().clone()));
+    let custom_theme = Arc::new(generate_theme());
+
     info!("Loading config from path: {}", &config_path);
 
     // Load Saved Servers
@@ -39,7 +44,7 @@ async fn main() {
 
     // Show Server Selection Screen
     info!("Displaying server selector...");
-    let server = run_server_selector(servers).await;
+    let _server = run_server_selector(custom_theme.clone(), servers).await;
 
     // Show connecting screen
     clear_background(GRAY);

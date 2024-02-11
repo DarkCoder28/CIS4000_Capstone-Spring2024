@@ -13,7 +13,7 @@ use tungstenite::connect;
 use url::Url;
 
 use crate::{
-    config::load_servers, 
+    config::{load_servers, save_servers}, 
     scenes::server_select::run_server_selector, ui::theme::generate_theme
 };
 
@@ -40,11 +40,18 @@ async fn main() {
 
     // Load Saved Servers
     info!("Loading saved servers...");
-    let servers = Arc::new(load_servers(&config_path).unwrap_or_default());
+    let mut servers = load_servers(&config_path).unwrap_or_default();
 
     // Show Server Selection Screen
     info!("Displaying server selector...");
-    let server = run_server_selector(custom_theme.clone(), servers).await;
+    let server_count = servers.len();
+    let server = run_server_selector(custom_theme.clone(), &mut servers).await;
+    if servers.len() != server_count {
+        let e = save_servers(&servers, &config_path);
+        if e.is_err() {
+            error!("Error saving server config:\n{}", e.unwrap_err());
+        }
+    }
     let server = format!("wss://{}/api/connect_session", &server);
     info!("Connecting to: {}", server);
 

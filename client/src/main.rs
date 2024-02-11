@@ -27,9 +27,9 @@ async fn main() {
     let mut config_path = String::from("");
     if let Some(base_dirs) = BaseDirs::new() {
         config_path = base_dirs.config_dir().to_str().unwrap().to_string();
-        config_path.push_str("/capstone-game/")
+        config_path.push_str("/gwynedd-valley/")
     } else {
-        config_path.push_str("capstone-game/");
+        config_path.push_str("gwynedd-valley/");
     }
 
     // Setup Theming
@@ -44,7 +44,9 @@ async fn main() {
 
     // Show Server Selection Screen
     info!("Displaying server selector...");
-    let _server = run_server_selector(custom_theme.clone(), servers).await;
+    let server = run_server_selector(custom_theme.clone(), servers).await;
+    let server = format!("wss://{}/api/connect_session", &server);
+    info!("Connecting to: {}", server);
 
     // Show connecting screen
     clear_background(GRAY);
@@ -53,8 +55,7 @@ async fn main() {
     // Connect to Server
     info!("Creating server connection");
     let server_connection = 
-        connect(Url::parse(&std::env::var("SERVER")
-            .expect("SERVER env var must be defined.")).unwrap());
+        connect(Url::parse(&server).unwrap());
     if server_connection.is_err() {
         error!("{}", server_connection.unwrap_err());
         loop {
@@ -66,6 +67,7 @@ async fn main() {
         }
     }
     let (mut _socket, _response) = server_connection.unwrap();
+    info!("Connected");
 
     loop {
         clear_background(PURPLE);

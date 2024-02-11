@@ -1,1 +1,1 @@
-SERVER="wss://home.thesheerans.com:3333/api/connect_sessions" cargo run
+cargo run

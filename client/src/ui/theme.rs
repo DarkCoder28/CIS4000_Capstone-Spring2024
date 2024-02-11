@@ -84,7 +84,7 @@ pub fn generate_theme() -> Skin {
         .font(font_bytes)
         .unwrap()
         .text_color(Color::from_rgba(180, 180, 180, 255))
-        .font_size(40)
+        .font_size(25)
         .build();
 
     let checkbox_style = root_ui()

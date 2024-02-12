@@ -14,7 +14,7 @@ use url::Url;
 
 use crate::{
     config::{load_servers, save_servers}, 
-    scenes::server_select::run_server_selector, ui::theme::generate_theme
+    scenes::{message_popup::show_popup, server_select::run_server_selector}, ui::theme::generate_theme
 };
 
 #[macroquad::main("Gwynedd Valley")]
@@ -56,8 +56,17 @@ async fn main() {
     info!("Connecting to: {}", server);
 
     // Show connecting screen
-    clear_background(GRAY);
-    draw_text("Connecting...", screen_width()/2.0, screen_height()/2.0, 32f32, BLUE);
+    let mut counter = 0;
+    loop {
+        clear_background(GRAY);
+        show_popup(&custom_theme, String::from("Connecting..."));
+        next_frame().await;
+        if counter < 3 {
+            counter += 1;
+        } else {
+            break;
+        }
+    }
 
     // Connect to Server
     info!("Creating server connection");
@@ -67,10 +76,8 @@ async fn main() {
         error!("{}", server_connection.unwrap_err());
         loop {
             clear_background(RED);
-            let message = "!!!COULD NOT CONNECT TO SERVER!!!";
-            let center = get_text_center(message, None, 32, 1.0, 0.0);
-            draw_text(&message, (screen_width()/2.0)-center.x, (screen_height()/2.0)-center.y, 32.0, BLUE);
-            next_frame().await
+            show_popup(&custom_theme, String::from("!!!COULD NOT CONNECT TO SERVER!!!"));
+            next_frame().await;
         }
     }
     let (mut _socket, _response) = server_connection.unwrap();

@@ -10,17 +10,13 @@ edition = "2021"
 tracing = "0.1.40"
 tracing-subscriber = "0.3.18"
 
-# # Singletons
-# lazy_static = { version = "1.4.0", features = [ "spin_no_std" ] }
-
 # Graphics
 macroquad = { version = "0.4.4", features = [ "audio" ] }
 macroquad-tiled = "0.2.0"
 
 # WebSocket
-tungstenite = { version = "0.21.0", features = [ "rustls", "rustls-tls-webpki-roots", "rustls-tls-native-roots" ] }
+tungstenite = { version = "0.21.0", features = [ "native-tls-vendored" ] }
 url = { version = "2.5.0", features = [ "serde" ] }
-# openssl = { version = "0.10.*", features = [ "vendored" ] }
 
 # Utility
 serde = "1.0.196"

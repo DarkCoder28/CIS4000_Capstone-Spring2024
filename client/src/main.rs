@@ -1,6 +1,7 @@
 pub mod config;
 pub mod scenes;
 pub mod ui;
+pub mod enums;
 
 use std::sync::Arc;
 
@@ -119,7 +120,7 @@ async fn main() {
     info!("Connected");
 
     let nav = render_outside(&custom_theme, &asset_path).await;
-    info!("Nav: {}", &nav);
+    info!("Nav: {}", &serde_json::to_string(&nav).expect("f"));
 
     loop {
         clear_background(PURPLE);

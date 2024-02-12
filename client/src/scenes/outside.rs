@@ -1,9 +1,10 @@
+use crate::enums::NavLocations;
 use macroquad::{
     prelude::*,
     ui::{root_ui, Skin},
 };
 
-pub async fn render_outside(theme: &Skin, asset_path: &str) -> String {
+pub async fn render_outside(theme: &Skin, asset_path: &str) -> NavLocations {
     let asset_path = asset_path.to_string();
     // Load Outside Map
     let mut map_path = asset_path.clone();
@@ -13,8 +14,14 @@ pub async fn render_outside(theme: &Skin, asset_path: &str) -> String {
         .expect("Failed to load Outside Map");
 
     loop {
-        let mut exit = String::new();
+        let mut exit = None;
         root_ui().push_skin(&theme);
+        let mouse_pos = mouse_position();
+        let mouse_pos = vec2(mouse_pos.0, mouse_pos.1);
+        //
+        if is_mouse_button_pressed(MouseButton::Left) {
+            info!("{}", pixel_to_local(mouse_pos));
+        }
         //
         clear_background(GRAY);
         draw_texture_ex(
@@ -27,48 +34,85 @@ pub async fn render_outside(theme: &Skin, asset_path: &str) -> String {
                 ..Default::default()
             },
         );
-        // Draw St. Bernard's Bounding box
-        let sb_rect_pos = local_to_pixel(Vec2::new(-0.45, -0.1));
-        let sb_rect_pos2 = local_to_pixel(Vec2::new(-0.25, 0.1));
-        let sb_rect_size = vec2(sb_rect_pos2.x-sb_rect_pos.x, sb_rect_pos2.y-sb_rect_pos.y);
-        draw_rectangle(
-            sb_rect_pos.x,
-            sb_rect_pos.y,
-            sb_rect_size.x,
-            sb_rect_size.y,
-            Color::from_rgba(255, 0, 0, 64),
-        );
-        let sb_text_pos = local_to_pixel(Vec2::new(-0.35, 0.));
-        draw_text_ex("St. Bernard's", sb_text_pos.x, sb_text_pos.y, TextParams {
-            color: WHITE,
-            font_size: 32,
-            rotation: -0.4363323,
-            ..Default::default()
-        });
-        if is_mouse_button_pressed(MouseButton::Left) {
-            let mouse_pos = mouse_position();
-            let mouse_pos = pixel_to_local(vec2(mouse_pos.0, mouse_pos.1));
-            info!("Standard\t\t{}", mouse_pos);
-            // Check St. Bernard's
-            if mouse_pos.x > -0.45 && mouse_pos.x < -0.25 && mouse_pos.y > -0.1 && mouse_pos.y < 0.1 {
-                info!("Navigating to St. B's");
-                exit.push_str("sb");
+
+        for (loc, pos1, pos2, label) in [
+            (
+                NavLocations::SaintBernards,
+                local_to_pixel(vec2(-0.45, -0.1)),
+                local_to_pixel(vec2(-0.25, 0.1)),
+                "St. Bernard's"
+            ),
+            (
+                NavLocations::Library,
+                local_to_pixel(vec2(-0.094033616, -0.43883497)),
+                local_to_pixel(vec2(0.14495799, -0.16796117)),
+                "Library"
+            ),
+            (
+                NavLocations::UniversityHall,
+                local_to_pixel(vec2(0.13596639, -0.11941747)),
+                local_to_pixel(vec2(0.34817647, 0.36407766)),
+                "University Hall"
+            )
+        ] {
+            let location = draw_bounding_box(pos1, pos2, label, mouse_pos.clone(), loc);
+            exit = location;
+            if exit.is_some() {
+                break;
             }
-            // let sb_aligned_mouse = rotate_vec2(mouse_pos, 0.75);
-            // info!("StB's\t\t{}", sb_aligned_mouse);
-            // if sb_aligned_mouse.x > -0.65 && sb_aligned_mouse.x < -0.4 && sb_aligned_mouse.y > -0.7 && sb_aligned_mouse.y < -0.31 {
-            //     info!("Activated");
-            // }
         }
+
         //
         root_ui().pop_skin();
-        if !exit.is_empty() {
-            return exit;
+        if exit.is_some() {
+            return exit.unwrap();
         }
         next_frame().await
     }
 }
 
+fn draw_bounding_box(
+    pos1: Vec2,
+    pos2: Vec2,
+    label: &str,
+    mouse_pos: Vec2,
+    location: NavLocations,
+) -> Option<NavLocations> {
+    let hover = 
+            mouse_pos.x > pos1.x
+        &&  mouse_pos.x < pos2.x
+        &&  mouse_pos.y > pos1.y
+        &&  mouse_pos.y < pos2.y;
+    if is_mouse_button_pressed(MouseButton::Left) && hover {
+        return Some(location);
+    }
+    let rect_size = vec2(pos2.x - pos1.x, pos2.y - pos1.y);
+    let rect_color = if !hover {
+        Color::from_rgba(255, 0, 0, 64)
+    } else {
+        Color::from_rgba(255, 255, 0, 64)
+    };
+    draw_rectangle(
+        pos1.x,
+        pos1.y,
+        rect_size.x,
+        rect_size.y,
+        rect_color,
+    );
+    let text_pos = Vec2::new(pos1.x + (rect_size.x / 2.), pos1.y + (rect_size.y / 2.));
+    draw_text_ex(
+        label,
+        text_pos.x,
+        text_pos.y,
+        TextParams {
+            color: WHITE,
+            font_size: 32,
+            rotation: -0.4363323,
+            ..Default::default()
+        },
+    );
+    None
+}
 
 #[allow(dead_code)]
 fn rotate_vec2(x: Vec2, n: f32) -> Vec2 {

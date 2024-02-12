@@ -2,8 +2,9 @@ pub mod config;
 pub mod scenes;
 pub mod ui;
 
-use std::sync::{Arc, Mutex};
+use std::{fs, sync::{Arc, Mutex}};
 
+use git2::{build::CheckoutBuilder, Repository};
 use tracing::{info, error};
 
 use macroquad::{prelude::*, ui::root_ui};
@@ -14,7 +15,7 @@ use url::Url;
 
 use crate::{
     config::{load_servers, save_servers}, 
-    scenes::{message_popup::show_popup, server_select::run_server_selector}, ui::theme::generate_theme
+    scenes::{message_popup::show_popup, outside::render_outside, server_select::run_server_selector}, ui::theme::generate_theme
 };
 
 #[macroquad::main("Gwynedd Valley")]
@@ -23,7 +24,7 @@ async fn main() {
     let tracing_sub = tracing_subscriber::FmtSubscriber::new();
     let _ = tracing::subscriber::set_global_default(tracing_sub);
 
-    // Generate Config Directory
+    // Generate Config Directorys
     let mut config_path = String::from("");
     if let Some(base_dirs) = BaseDirs::new() {
         config_path = base_dirs.config_dir().to_str().unwrap().to_string();
@@ -32,10 +33,44 @@ async fn main() {
         config_path.push_str("gwynedd-valley/");
     }
 
+    let mut asset_path = String::from("");
+    if let Some(base_dirs) = BaseDirs::new() {
+        asset_path = base_dirs.data_dir().to_str().unwrap().to_string();
+        asset_path.push_str("/gwynedd-valley/")
+    } else {
+        asset_path.push_str("gwynedd-valley/");
+    }
+
     // Setup Theming
     let _default_theme = Arc::new(Mutex::new(root_ui().default_skin().clone()));
     let custom_theme = Arc::new(generate_theme());
 
+    // Update Assets
+    info!("Updating assets...");
+    let url = "https://github.com/DarkCoder28/CIS4000_Capstone-Spring2024-ASSETS.git";
+    let path = std::path::Path::new(&asset_path);
+    if std::path::Path::exists(&path) {
+        let repo = match Repository::open(&asset_path) {
+            Ok(repo) => repo,
+            Err(e) => panic!("failed to open: {}", e),
+        };
+        match repo.checkout_head(Some(CheckoutBuilder::new().force().into())) {
+            Ok(_) => (),
+            Err(e) => {
+                error!("{}", e);
+                loop {
+                    clear_background(GRAY);
+                    show_popup(&custom_theme, String::from("Asset Update Failed!"));
+                    next_frame().await
+                }
+            }
+        }
+    } else {
+        let repo = Repository::clone(url, &asset_path);
+        if repo.is_err() {
+            panic!("Failed to download assets: {}", repo.err().unwrap().message());
+        }
+    }
     info!("Loading config from path: {}", &config_path);
 
     // Load Saved Servers
@@ -60,12 +95,12 @@ async fn main() {
     loop {
         clear_background(GRAY);
         show_popup(&custom_theme, String::from("Connecting..."));
-        next_frame().await;
         if counter < 3 {
             counter += 1;
         } else {
             break;
         }
+        next_frame().await
     }
 
     // Connect to Server
@@ -77,11 +112,13 @@ async fn main() {
         loop {
             clear_background(RED);
             show_popup(&custom_theme, String::from("!!!COULD NOT CONNECT TO SERVER!!!"));
-            next_frame().await;
+            next_frame().await
         }
     }
     let (mut _socket, _response) = server_connection.unwrap();
     info!("Connected");
+
+    render_outside(&custom_theme, &asset_path).await;
 
     loop {
         clear_background(PURPLE);

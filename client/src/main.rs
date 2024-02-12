@@ -2,7 +2,7 @@ pub mod config;
 pub mod scenes;
 pub mod ui;
 
-use std::{fs, sync::{Arc, Mutex}};
+use std::sync::Arc;
 
 use git2::{build::CheckoutBuilder, Repository};
 use tracing::{info, error};
@@ -24,7 +24,7 @@ async fn main() {
     let tracing_sub = tracing_subscriber::FmtSubscriber::new();
     let _ = tracing::subscriber::set_global_default(tracing_sub);
 
-    // Generate Config Directorys
+    // Generate Config Directories
     let mut config_path = String::from("");
     if let Some(base_dirs) = BaseDirs::new() {
         config_path = base_dirs.config_dir().to_str().unwrap().to_string();
@@ -42,7 +42,7 @@ async fn main() {
     }
 
     // Setup Theming
-    let _default_theme = Arc::new(Mutex::new(root_ui().default_skin().clone()));
+    let _default_theme = Arc::new(root_ui().default_skin().clone());
     let custom_theme = Arc::new(generate_theme());
 
     // Update Assets
@@ -118,7 +118,8 @@ async fn main() {
     let (mut _socket, _response) = server_connection.unwrap();
     info!("Connected");
 
-    render_outside(&custom_theme, &asset_path).await;
+    let nav = render_outside(&custom_theme, &asset_path).await;
+    info!("Nav: {}", &nav);
 
     loop {
         clear_background(PURPLE);

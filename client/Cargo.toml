@@ -14,9 +14,10 @@ tracing-subscriber = "0.3.18"
 macroquad = { version = "0.4.4", features = [ "audio" ] }
 macroquad-tiled = "0.2.0"
 
-# WebSocket
+# Server Connection
 tungstenite = { version = "0.21.0", features = [ "native-tls-vendored" ] }
 url = { version = "2.5.0", features = [ "serde" ] }
+common = { path = "../common" }
 
 # Utility
 serde = "1.0.196"
@@ -25,3 +26,4 @@ anyhow = "1.0.79"
 directories = "5.0.1"
 include_dir = { version = "0.7.3", features = [] }
 git2 = { version = "0.18.2", features = [ "vendored-libgit2", "vendored-openssl" ] }
+rs_sha3_256 = "0.1.2"

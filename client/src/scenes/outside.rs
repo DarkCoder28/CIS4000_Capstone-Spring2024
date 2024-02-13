@@ -1,10 +1,9 @@
-use crate::enums::NavLocations;
 use macroquad::{
     prelude::*,
     ui::{root_ui, Skin},
 };
 
-pub async fn render_outside(theme: &Skin, asset_path: &str) -> NavLocations {
+pub async fn render_outside(theme: &Skin, asset_path: &str) -> String {
     let asset_path = asset_path.to_string();
     // Load Outside Map
     let mut map_path = asset_path.clone();
@@ -37,19 +36,19 @@ pub async fn render_outside(theme: &Skin, asset_path: &str) -> NavLocations {
 
         for (loc, pos1, pos2, label) in [
             (
-                NavLocations::SaintBernards,
+                "SaintBernards",
                 local_to_pixel(vec2(-0.45, -0.1)),
                 local_to_pixel(vec2(-0.25, 0.1)),
                 "St. Bernard's"
             ),
             (
-                NavLocations::Library,
+                "Library",
                 local_to_pixel(vec2(-0.094033616, -0.43883497)),
                 local_to_pixel(vec2(0.14495799, -0.16796117)),
                 "Library"
             ),
             (
-                NavLocations::UniversityHall,
+                "UniversityHall",
                 local_to_pixel(vec2(0.13596639, -0.11941747)),
                 local_to_pixel(vec2(0.34817647, 0.36407766)),
                 "University Hall"
@@ -76,15 +75,15 @@ fn draw_bounding_box(
     pos2: Vec2,
     label: &str,
     mouse_pos: Vec2,
-    location: NavLocations,
-) -> Option<NavLocations> {
+    location: &str,
+) -> Option<String> {
     let hover = 
             mouse_pos.x > pos1.x
         &&  mouse_pos.x < pos2.x
         &&  mouse_pos.y > pos1.y
         &&  mouse_pos.y < pos2.y;
     if is_mouse_button_pressed(MouseButton::Left) && hover {
-        return Some(location);
+        return Some(location.to_string());
     }
     let rect_size = vec2(pos2.x - pos1.x, pos2.y - pos1.y);
     let rect_color = if !hover {

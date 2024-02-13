@@ -1,10 +1,10 @@
 pub mod config;
 pub mod scenes;
 pub mod ui;
-pub mod enums;
 
 use std::sync::Arc;
 
+use common::ClientState;
 use git2::{build::CheckoutBuilder, Repository};
 use tracing::{info, error};
 
@@ -16,8 +16,10 @@ use url::Url;
 
 use crate::{
     config::{load_servers, save_servers}, 
-    scenes::{message_popup::show_popup, outside::render_outside, server_select::run_server_selector}, ui::theme::generate_theme
+    scenes::{login::render_login, message_popup::show_popup, outside::render_outside, server_select::run_server_selector}, ui::theme::generate_theme
 };
+
+static TIMEOUT: f64 = 3.;
 
 #[macroquad::main("Gwynedd Valley")]
 async fn main() {
@@ -47,7 +49,7 @@ async fn main() {
     let custom_theme = Arc::new(generate_theme());
 
     // Update Assets
-    info!("Updating assets...");
+    info!("Updating assets at path: {}", &asset_path);
     let url = "https://github.com/DarkCoder28/CIS4000_Capstone-Spring2024-ASSETS.git";
     let path = std::path::Path::new(&asset_path);
     if std::path::Path::exists(&path) {
@@ -78,49 +80,111 @@ async fn main() {
     info!("Loading saved servers...");
     let mut servers = load_servers(&config_path).unwrap_or_default();
 
-    // Show Server Selection Screen
-    info!("Displaying server selector...");
-    let server_count = servers.len();
-    let server = run_server_selector(custom_theme.clone(), &mut servers).await;
-    if servers.len() != server_count {
-        let e = save_servers(&servers, &config_path);
-        if e.is_err() {
-            error!("Error saving server config:\n{}", e.unwrap_err());
+    'server_select: loop {
+        // Show Server Selection Screen
+        info!("Displaying server selector...");
+        let server_count = servers.len();
+        let server = run_server_selector(custom_theme.clone(), &mut servers).await;
+        if servers.len() != server_count {
+            let e = save_servers(&servers, &config_path);
+            if e.is_err() {
+                error!("Error saving server config:\n{}", e.unwrap_err());
+            }
         }
-    }
-    let server = format!("wss://{}/api/connect_session", &server);
-    info!("Connecting to: {}", server);
+        let server = format!("wss://{}", &server);
+        info!("Connecting to: {}", server);
 
-    // Show connecting screen
-    let mut counter = 0;
-    loop {
-        clear_background(GRAY);
-        show_popup(&custom_theme, String::from("Connecting..."));
-        if counter < 3 {
-            counter += 1;
-        } else {
-            break;
-        }
-        next_frame().await
-    }
-
-    // Connect to Server
-    info!("Creating server connection");
-    let server_connection = 
-        connect(Url::parse(&server).unwrap());
-    if server_connection.is_err() {
-        error!("{}", server_connection.unwrap_err());
+        // Show connecting screen
+        let mut counter = 0;
         loop {
-            clear_background(RED);
-            show_popup(&custom_theme, String::from("!!!COULD NOT CONNECT TO SERVER!!!"));
+            clear_background(GRAY);
+            show_popup(&custom_theme, String::from("Connecting..."));
+            if counter < 3 {
+                counter += 1;
+            } else {
+                break;
+            }
             next_frame().await
         }
+
+        // Connect to Server
+        info!("Creating server connection");
+        let server_connection = 
+            connect(Url::parse(&server).unwrap());
+        if server_connection.is_err() {
+            error!("{}", server_connection.unwrap_err());
+            let timer = get_time();
+            loop {
+                if get_time() - timer > TIMEOUT {
+                    continue 'server_select;
+                }
+                clear_background(RED);
+                show_popup(&custom_theme, String::from("!!!COULD NOT CONNECT TO SERVER!!!"));
+                next_frame().await
+            }
+        }
+        let (mut _socket, _response) = server_connection.unwrap();
+        info!("Connected");
+
+        let auth = render_login(&custom_theme).await;
+        info!("{}", auth.username);
+
+        // Show loading screen
+        let mut counter = 0;
+        loop {
+            clear_background(GRAY);
+            show_popup(&custom_theme, String::from("Loading..."));
+            if counter < 3 {
+                counter += 1;
+            } else {
+                break;
+            }
+            next_frame().await
+        }
+
+        info!("Getting Client State");
+        let server_msg = _socket.read();
+        let mut state = None;
+        if server_msg.is_ok() {
+            let x = server_msg.unwrap();
+            if x.is_text() || x.is_binary() {
+                let msg = x.into_text().unwrap();
+                let state_temp = serde_json::from_str::<ClientState>(&msg);
+                if state_temp.is_ok() {
+                    state = Some(state_temp.unwrap());
+                } else {
+                        error!("Error parsing server message: {}", state_temp.unwrap_err());
+                }
+            }
+        }
+        if state.is_none() {
+            let timer = get_time();
+            loop {
+                if get_time() - timer > TIMEOUT {
+                    continue 'server_select;
+                }
+                clear_background(RED);
+                show_popup(&custom_theme, String::from("!!!Server did not send state!!!"));
+                next_frame().await
+            }
+        }
+        let state = state.unwrap();
+        if !state.authenticated {
+            let timer = get_time();
+            loop {
+                if get_time() - timer > TIMEOUT {
+                    continue 'server_select;
+                }
+                clear_background(RED);
+                show_popup(&custom_theme, String::from("Authentication Error"));
+                next_frame().await
+            }
+        }
+        break;
     }
-    let (mut _socket, _response) = server_connection.unwrap();
-    info!("Connected");
 
     let nav = render_outside(&custom_theme, &asset_path).await;
-    info!("Nav: {}", &serde_json::to_string(&nav).expect("f"));
+    info!("Nav: {}", &nav);
 
     loop {
         clear_background(PURPLE);

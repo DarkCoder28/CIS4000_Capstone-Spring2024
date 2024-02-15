@@ -4,10 +4,11 @@ use serde::{Serialize, Deserialize};
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ClientState {
     pub username: String,
-    pub pos: Vec2,
-    pub location: String,
     pub new_user: bool,
     pub authenticated: bool,
+    pub pos: Vec2,
+    pub location: String,
+    pub complete_quests: Vec<String>,
 }
 
 impl ClientState {
@@ -18,6 +19,7 @@ impl ClientState {
             location: String::from("outside"),
             new_user: true,
             authenticated: false,
+            complete_quests: Vec::new(),
         }
     }
 }

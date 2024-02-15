@@ -1,0 +1,36 @@
+version: '3'
+services:
+  game-server:
+    container_name: gwynedd-valley
+    image: gwynedd-valley:latest
+    restart: unless-stopped
+    hostname: game-server
+    environment:
+      - TZ=America/New_York
+      - MONGODB_URI=mongodb://mongodbserver:27017
+    ports:
+      - "3000:3000/tcp"
+    logging: 
+      driver: json-file
+      options:
+        max-size: "12m"
+        max-file: "5"
+  mongodb-server:
+    container_name: gwynedd-valley-mongodb
+    image: mongo:latest
+    restart: unless-stopped
+    hostname: mongodbserver
+    ports:
+      - 3001:27017 # Debug; production doesn't need this forwarded
+    volumes:
+      - gwynedd-valley-database:/data/db
+      - gwynedd-valley-database-config:/data/configdb
+    logging:
+      driver: json-file
+      options:
+        max-size: "12m"
+        max-file: "5"
+
+volumes: 
+  gwynedd-valley-database:
+  gwynedd-valley-database-config:

@@ -1,6 +1,7 @@
 #!/bin/bash
-rm ./cis4000.tar
+rm ./gwynedd-valley.tar
+docker image rm gwynedd-valley:latest
 ./build.sh
-docker build -t cis4000:latest .
-docker image save -o cis4000.tar cis4000:latest
-docker image rm cis4000:latest
+docker build -t gwynedd-valley:latest .
+docker image save -o gwynedd-valley.tar gwynedd-valley:latest
+docker image rm gwynedd-valley:latest

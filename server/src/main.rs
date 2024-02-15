@@ -1,3 +1,5 @@
+pub mod mongo;
+
 use common::{ClientAuth, ClientState};
 use futures_util::{stream::{SplitSink, SplitStream}, SinkExt, StreamExt};
 use tokio::{net::{TcpListener, TcpStream}, sync::broadcast::{self, Sender}};
@@ -5,25 +7,6 @@ use tracing::{error, info, instrument};
 use std::net::SocketAddr;
 use tokio_tungstenite::{accept_async, tungstenite::{Error, Message::{self, Text}, Result}, WebSocketStream};
 
-// #[tokio::main]
-// async fn main() -> Result<(), Error> {
-//     // Setup Logging
-//     let tracing_sub = tracing_subscriber::FmtSubscriber::new();
-//     let _ = tracing::subscriber::set_global_default(tracing_sub);
-//     // Setup Master Broadcast
-//     let (master_broadcast, _) = broadcast::channel::<String>(16);
-
-//     // Create the event loop and TCP listener we'll accept connections on.
-//     let try_socket = TcpListener::bind("0.0.0.0:3000").await;
-//     let listener = try_socket.expect("Failed to bind");
-//     tracing::info!("Listening on 0.0.0.0:3000");
-
-//     while let Ok((stream, _)) = listener.accept().await {
-//         tokio::spawn(accept_connection(stream, , master_broadcast.clone()));
-//     }
-
-//     Ok(())
-// }
 
 #[tokio::main]
 async fn main() {
@@ -54,7 +37,7 @@ async fn accept_connection(peer: SocketAddr, stream: TcpStream, master_broadcast
     }
 }
 
-// #[instrument(name="client")]
+#[instrument(name="client")]
 async fn handle_connection(peer: SocketAddr, stream: TcpStream, master_broadcast: Sender<String>) -> Result<()> {
     let ws_stream = accept_async(stream).await.expect("Failed to accept");
     let (mut ws_write, mut ws_read) = ws_stream.split();
@@ -65,7 +48,7 @@ async fn handle_connection(peer: SocketAddr, stream: TcpStream, master_broadcast
     if client_state.is_none() {
         return Ok(());
     }
-    let mut client_state = client_state.unwrap();
+    let client_state = client_state.unwrap();
     info!("Sending client state");
     let init_state = serde_json::to_string(&client_state).unwrap();
     let _ = ws_write.send(Text(init_state)).await;
@@ -79,6 +62,8 @@ async fn handle_connection(peer: SocketAddr, stream: TcpStream, master_broadcast
             let _ = master_broadcast.send(msg.into_text().unwrap());
         }
     }
+
+    let client_exit_state = serde_json::to_string(&client_state).unwrap();
 
     f.await;
 
@@ -122,8 +107,7 @@ async fn auth(ws_read: &mut SplitStream<WebSocketStream<TcpStream>>) -> Option<C
 
     // Get client state or generate new
     info!("Getting client state");
-    let mut client_state = ClientState::new(&auth.username);
+    let client_state = mongo::auth_and_get_client(&auth).await;
     drop(auth);
-    client_state.authenticated = true;
     Some(client_state)
 }

@@ -11,7 +11,7 @@ use tracing::{info, error};
 use macroquad::{prelude::*, ui::{root_ui, Skin}};
 
 use directories::BaseDirs;
-use tungstenite::{connect, http::StatusCode, Message::Text};
+use tungstenite::{connect, http::StatusCode, Message::{self, Text}};
 use url::Url;
 
 use crate::{
@@ -200,6 +200,7 @@ async fn main() {
         }
         let state = state.unwrap();
         if !state.authenticated {
+            let _ = socket.close(None);
             let timer = get_time();
             loop {
                 if get_time() - timer > TIMEOUT {

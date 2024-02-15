@@ -47,6 +47,7 @@ pub async fn render_login(theme: &Skin) -> ClientAuth {
             if ui.button(Vec2::new(125., 110.), "Submit") {
                 pwd.hash(&mut sha3_256hasher);
                 auth.pass_hash = sha3_256hasher.finish();
+                pwd.clear();
             }
         });
 

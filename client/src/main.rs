@@ -8,10 +8,10 @@ use common::ClientState;
 use git2::{build::CheckoutBuilder, Repository};
 use tracing::{info, error};
 
-use macroquad::{prelude::*, ui::root_ui};
+use macroquad::{prelude::*, ui::{root_ui, Skin}};
 
 use directories::BaseDirs;
-use tungstenite::connect;
+use tungstenite::{connect, http::StatusCode, Message::Text};
 use url::Url;
 
 use crate::{
@@ -91,44 +91,52 @@ async fn main() {
                 error!("Error saving server config:\n{}", e.unwrap_err());
             }
         }
-        let server = format!("wss://{}", &server);
-        info!("Connecting to: {}", server);
+        let mut secure = false;
+        let socket;
+        'server_connect: loop {
+            let server = format!("{}://{}", if secure {"wss"} else {"ws"}, &server);
+            info!("Connecting to: {}", server);
 
-        // Show connecting screen
-        let mut counter = 0;
-        loop {
-            clear_background(GRAY);
-            show_popup(&custom_theme, String::from("Connecting..."));
-            if counter < 3 {
-                counter += 1;
-            } else {
-                break;
-            }
-            next_frame().await
-        }
-
-        // Connect to Server
-        info!("Creating server connection");
-        let server_connection = 
-            connect(Url::parse(&server).unwrap());
-        if server_connection.is_err() {
-            error!("{}", server_connection.unwrap_err());
-            let timer = get_time();
+            // Show connecting screen
+            let mut counter = 0;
             loop {
-                if get_time() - timer > TIMEOUT {
-                    continue 'server_select;
+                clear_background(GRAY);
+                show_popup(&custom_theme, String::from("Connecting..."));
+                if counter < 3 {
+                    counter += 1;
+                } else {
+                    break;
                 }
-                clear_background(RED);
-                show_popup(&custom_theme, String::from("!!!COULD NOT CONNECT TO SERVER!!!"));
                 next_frame().await
             }
+
+            // Connect to Server
+            info!("Creating server connection");
+            let server_connection = 
+                connect(Url::parse(&server).unwrap());
+
+            if server_connection.is_err() {
+                if !secure {
+                    secure = true;
+                    continue 'server_connect;
+                } else {
+                    error!("{}", server_connection.unwrap_err());
+                    err_msg(&custom_theme, "!!!COULD NOT CONNECT TO SERVER!!!").await;
+                    continue 'server_select;
+                }
+            }
+            let (soc, _) = server_connection.unwrap();
+            // let (mut write, mut read) = socket.split();
+            info!("Connected");
+            socket = Some(soc);
+            break 'server_connect;
         }
-        let (mut _socket, _response) = server_connection.unwrap();
-        info!("Connected");
+        if socket.is_none() {
+            continue 'server_select;
+        }
+        let mut socket = socket.unwrap();
 
         let auth = render_login(&custom_theme).await;
-        info!("{}", auth.username);
-
         // Show loading screen
         let mut counter = 0;
         loop {
@@ -142,19 +150,41 @@ async fn main() {
             next_frame().await
         }
 
-        info!("Getting Client State");
-        let server_msg = _socket.read();
-        let mut state = None;
-        if server_msg.is_ok() {
-            let x = server_msg.unwrap();
-            if x.is_text() || x.is_binary() {
-                let msg = x.into_text().unwrap();
-                let state_temp = serde_json::from_str::<ClientState>(&msg);
-                if state_temp.is_ok() {
-                    state = Some(state_temp.unwrap());
-                } else {
-                        error!("Error parsing server message: {}", state_temp.unwrap_err());
+        info!("Logging in as '{}'", auth.username);
+        let auth_ser = serde_json::to_string(&auth).expect("Failed to serialize the auth packet");
+        drop(auth);
+        let auth_send_status = socket.write(Text(auth_ser));
+        let _ = socket.flush();
+        if auth_send_status.is_err() {
+            error!("Couldn't send auth packet");
+            let timer = get_time();
+            loop {
+                if get_time() - timer > TIMEOUT {
+                    continue 'server_select;
                 }
+                clear_background(RED);
+                show_popup(&custom_theme, String::from("!!!Couldn't send auth packet!!!"));
+                next_frame().await
+            }
+        }
+
+        info!("Getting Client State");
+        let server_msg = socket.read();
+        if server_msg.is_err() {
+            error!("{}", server_msg.unwrap_err());
+            err_msg(&custom_theme, "Server connection closed").await;
+            continue 'server_select;
+        }
+        let server_msg = server_msg.unwrap();
+        let mut state = None;
+
+        if server_msg.is_text() || server_msg.is_binary() {
+            let msg = server_msg.into_text().unwrap();
+            let state_temp = serde_json::from_str::<ClientState>(&msg);
+            if state_temp.is_ok() {
+                state = Some(state_temp.unwrap());
+            } else {
+                error!("Error parsing server message: {}", state_temp.unwrap_err());
             }
         }
         if state.is_none() {
@@ -195,6 +225,18 @@ async fn main() {
 
         draw_text("IT WORKS!", 20.0, 20.0, 30.0, DARKGRAY);
 
+        next_frame().await
+    }
+}
+
+async fn err_msg(custom_theme: &Skin, msg: &str) {
+    let timer = get_time();
+    loop {
+        if get_time() - timer > TIMEOUT {
+            break;
+        }
+        clear_background(RED);
+        show_popup(&custom_theme, String::from(msg));
         next_frame().await
     }
 }

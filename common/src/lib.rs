@@ -8,6 +8,7 @@ pub struct ClientState {
     pub authenticated: bool,
     pub pos: Vec2,
     pub location: String,
+    pub current_quests: Vec<String>,
     pub complete_quests: Vec<String>,
 }
 
@@ -18,7 +19,8 @@ impl ClientState {
             pos: vec2(0., 0.),
             location: String::from("outside"),
             new_user: true,
-            authenticated: false,
+            authenticated: true,
+            current_quests: Vec::from(["GettingStarted".to_string()]),
             complete_quests: Vec::new(),
         }
     }

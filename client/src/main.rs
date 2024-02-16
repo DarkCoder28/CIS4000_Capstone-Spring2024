@@ -1,22 +1,23 @@
 pub mod config;
 pub mod scenes;
 pub mod ui;
+pub mod map_data;
+pub mod asset_updater;
 
 use std::sync::Arc;
 
 use common::ClientState;
-use git2::{build::CheckoutBuilder, Repository};
 use tracing::{info, error};
 
 use macroquad::{prelude::*, ui::{root_ui, Skin}};
 
 use directories::BaseDirs;
-use tungstenite::{connect, http::StatusCode, Message::{self, Text}};
+use tungstenite::{connect, Message::Text};
 use url::Url;
 
 use crate::{
     config::{load_servers, save_servers}, 
-    scenes::{login::render_login, message_popup::show_popup, outside::render_outside, server_select::run_server_selector}, ui::theme::generate_theme
+    scenes::{inside::render_inside, login::render_login, message_popup::show_popup, outside::render_outside, server_select::run_server_selector}, ui::theme::generate_theme
 };
 
 static TIMEOUT: f64 = 3.;
@@ -50,35 +51,17 @@ async fn main() {
 
     // Update Assets
     info!("Updating assets at path: {}", &asset_path);
-    let url = "https://github.com/DarkCoder28/CIS4000_Capstone-Spring2024-ASSETS.git";
-    let path = std::path::Path::new(&asset_path);
-    if std::path::Path::exists(&path) {
-        let repo = match Repository::open(&asset_path) {
-            Ok(repo) => repo,
-            Err(e) => panic!("failed to open: {}", e),
-        };
-        match repo.checkout_head(Some(CheckoutBuilder::new().force().into())) {
-            Ok(_) => (),
-            Err(e) => {
-                error!("{}", e);
-                loop {
-                    clear_background(GRAY);
-                    show_popup(&custom_theme, String::from("Asset Update Failed!"));
-                    next_frame().await
-                }
-            }
-        }
-    } else {
-        let repo = Repository::clone(url, &asset_path);
-        if repo.is_err() {
-            panic!("Failed to download assets: {}", repo.err().unwrap().message());
-        }
+    match asset_updater::update_assets(&asset_path) {
+        Ok(_) => (),
+        Err(e) => panic!("Error updating assets: {}", e),
     }
     info!("Loading config from path: {}", &config_path);
 
     // Load Saved Servers
     info!("Loading saved servers...");
     let mut servers = load_servers(&config_path).unwrap_or_default();
+    info!("Loading map data...");
+    let map_data = map_data::import_data(&asset_path).await;
 
     'server_select: loop {
         // Show Server Selection Screen
@@ -214,8 +197,9 @@ async fn main() {
         break;
     }
 
-    let nav = render_outside(&custom_theme, &asset_path).await;
+    let nav = render_outside(&custom_theme, &asset_path, &map_data.outside).await;
     info!("Nav: {}", &nav);
+    render_inside(&custom_theme, &asset_path, &map_data.insides.first().unwrap(), &nav).await;
 
     loop {
         clear_background(PURPLE);

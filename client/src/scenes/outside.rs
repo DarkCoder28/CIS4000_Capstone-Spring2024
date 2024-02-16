@@ -3,7 +3,7 @@ use macroquad::{
     ui::{root_ui, Skin},
 };
 
-pub async fn render_outside(theme: &Skin, asset_path: &str) -> String {
+pub async fn render_outside(theme: &Skin, asset_path: &str, outside_data: &Vec<crate::map_data::MapLocation>) -> String {
     let asset_path = asset_path.to_string();
     // Load Outside Map
     let mut map_path = asset_path.clone();
@@ -34,34 +34,20 @@ pub async fn render_outside(theme: &Skin, asset_path: &str) -> String {
             },
         );
 
-        for (loc, pos1, pos2, label) in [
-            (
-                "SaintBernards",
-                local_to_pixel(vec2(-0.45, -0.1)),
-                local_to_pixel(vec2(-0.25, 0.1)),
-                "St. Bernard's"
-            ),
-            (
-                "Library",
-                local_to_pixel(vec2(-0.094033616, -0.43883497)),
-                local_to_pixel(vec2(0.14495799, -0.16796117)),
-                "Library"
-            ),
-            (
-                "UniversityHall",
-                local_to_pixel(vec2(0.13596639, -0.11941747)),
-                local_to_pixel(vec2(0.34817647, 0.36407766)),
-                "University Hall"
-            )
-        ] {
-            let location = draw_bounding_box(pos1, pos2, label, mouse_pos.clone(), loc);
+        for location in outside_data {
+            let location = draw_bounding_box(
+                local_to_pixel(vec2(location.tl_corner.x, location.tl_corner.y)), 
+                local_to_pixel(vec2(location.br_corner.x, location.br_corner.y)), 
+                &location.label, 
+                mouse_pos.clone(), 
+                &location.label
+            );
             exit = location;
             if exit.is_some() {
                 break;
             }
         }
 
-        //
         root_ui().pop_skin();
         if exit.is_some() {
             return exit.unwrap();

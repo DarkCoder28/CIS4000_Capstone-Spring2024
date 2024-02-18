@@ -63,6 +63,9 @@ async fn main() {
     info!("Loading map data...");
     let map_data = map_data::import_data(&asset_path).await;
 
+    let mut socket;
+    let mut state: ClientState;
+
     'server_select: loop {
         // Show Server Selection Screen
         info!("Displaying server selector...");
@@ -75,7 +78,7 @@ async fn main() {
             }
         }
         let mut secure = false;
-        let socket;
+        let socket2;
         'server_connect: loop {
             let server = format!("{}://{}", if secure {"wss"} else {"ws"}, &server);
             info!("Connecting to: {}", server);
@@ -111,13 +114,13 @@ async fn main() {
             let (soc, _) = server_connection.unwrap();
             // let (mut write, mut read) = socket.split();
             info!("Connected");
-            socket = Some(soc);
+            socket2 = Some(soc);
             break 'server_connect;
         }
-        if socket.is_none() {
+        if socket2.is_none() {
             continue 'server_select;
         }
-        let mut socket = socket.unwrap();
+        socket = socket2.unwrap();
 
         let auth = render_login(&custom_theme).await;
         // Show loading screen
@@ -159,18 +162,18 @@ async fn main() {
             continue 'server_select;
         }
         let server_msg = server_msg.unwrap();
-        let mut state = None;
+        let mut state2 = None;
 
         if server_msg.is_text() || server_msg.is_binary() {
             let msg = server_msg.into_text().unwrap();
             let state_temp = serde_json::from_str::<ClientState>(&msg);
             if state_temp.is_ok() {
-                state = Some(state_temp.unwrap());
+                state2 = Some(state_temp.unwrap());
             } else {
                 error!("Error parsing server message: {}", state_temp.unwrap_err());
             }
         }
-        if state.is_none() {
+        if state2.is_none() {
             let timer = get_time();
             loop {
                 if get_time() - timer > TIMEOUT {
@@ -181,7 +184,7 @@ async fn main() {
                 next_frame().await
             }
         }
-        let state = state.unwrap();
+        state = state2.unwrap();
         if !state.authenticated {
             let _ = socket.close(None);
             let timer = get_time();
@@ -199,7 +202,7 @@ async fn main() {
 
     let nav = render_outside(&custom_theme, &asset_path, &map_data.outside).await;
     info!("Nav: {}", &nav);
-    render_inside(&custom_theme, &asset_path, &map_data.insides.first().unwrap(), &nav).await;
+    render_inside(&custom_theme, &asset_path, &map_data.insides.first().unwrap(), &mut state, &mut socket).await;
 
     loop {
         clear_background(PURPLE);

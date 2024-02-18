@@ -7,6 +7,7 @@ pub struct ClientState {
     pub new_user: bool,
     pub authenticated: bool,
     pub pos: Vec2,
+    pub speed: Vec2,
     pub location: String,
     pub current_quests: Vec<String>,
     pub complete_quests: Vec<String>,
@@ -17,6 +18,7 @@ impl ClientState {
         ClientState {
             username: String::from(uname),
             pos: vec2(0., 0.),
+            speed: vec2(0. ,0.),
             location: String::from("outside"),
             new_user: true,
             authenticated: true,

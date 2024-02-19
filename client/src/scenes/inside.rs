@@ -111,7 +111,7 @@ pub async fn render_inside(theme: &Skin, asset_path: &str, map: &MapMeta, state:
         let map_offset_y = (screen_height()-scaled_map_size_y)/2.;
         // Setup UI
         root_ui().push_skin(theme);
-        clear_background(DARKGRAY);
+        clear_background(BLACK);
         // Render Tiles
         for layer_name in &layer_order {
             tiled_map.draw_tiles(layer_name, Rect::new(map_offset_x, map_offset_y, scaled_map_size_x, scaled_map_size_y), None);

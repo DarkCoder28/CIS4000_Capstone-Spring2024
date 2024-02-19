@@ -121,7 +121,7 @@ pub async fn render_inside(theme: &Skin, asset_path: &str, map: &MapMeta, state:
             const PLAYER_SPRITE: u32 = 389;
 
             let pos = world.actor_pos(player.collider);
-            tiled_map.spr("interiors", PLAYER_SPRITE, Rect::new(map_offset_x+((pos.x-2)*scale), map_offset_y+((pos.y-2)*scale), 32.*scale, 32.*scale));
+            tiled_map.spr("interiors", PLAYER_SPRITE, Rect::new(map_offset_x+((pos.x-2.)*scale), map_offset_y+((pos.y-2.)*scale), 32.*scale, 32.*scale));
         }
         // Calculate Player Movement
         {

@@ -21,6 +21,7 @@ pub struct MapMeta {
     pub loc_id: String,
     pub tilemap_path: String,
     pub tilemap_texture_mappings: Vec<(String, String)>,
+    pub spawn_location: Vec2
 }
 
 pub async fn import_data(asset_path: &str) -> Maps {

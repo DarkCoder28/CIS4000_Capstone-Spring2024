@@ -89,7 +89,7 @@ pub async fn render_inside(theme: &Skin, asset_path: &str, map: &MapMeta, state:
     world.add_static_tiled_layer(static_colliders, 32., 32., map_width as usize, 1);
 
     let mut player = Player {
-        collider: world.add_actor(vec2(5.*32., (map_height as f32-1.)*32.), 16, 16),
+        collider: world.add_actor(glam2mac(map.spawn_location) * vec2(32., 32.), 16, 16),
         speed: vec2(0.,0.),
     };
 
@@ -178,4 +178,8 @@ pub async fn render_inside(theme: &Skin, asset_path: &str, map: &MapMeta, state:
         root_ui().pop_skin();
         next_frame().await
     }
+}
+
+fn glam2mac(vec: ::glam::f32::Vec2) -> Vec2 {
+    vec2(vec.x, vec.y)
 }

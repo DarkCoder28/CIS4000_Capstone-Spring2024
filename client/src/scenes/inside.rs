@@ -157,8 +157,8 @@ pub async fn render_inside(theme: &Skin, asset_path: &str, map: &MapMeta, state:
                 send_queue.lock().unwrap().push_back(state_ser);
             }
 
-            world.move_h(player.collider, player.speed.x * 128. * get_frame_time());
-            world.move_v(player.collider, player.speed.y * -128. * get_frame_time());
+            world.move_h(player.collider, player.speed.x * 256. * get_frame_time());
+            world.move_v(player.collider, player.speed.y * -256. * get_frame_time());
         }
         // Update Others Locations
         {

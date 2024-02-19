@@ -89,7 +89,7 @@ pub async fn render_inside(theme: &Skin, asset_path: &str, map: &MapMeta, state:
     world.add_static_tiled_layer(static_colliders, 32., 32., map_width as usize, 1);
 
     let mut player = Player {
-        collider: world.add_actor(glam2mac(map.spawn_location) * vec2(32., 32.), 30, 30),
+        collider: world.add_actor(glam2mac(map.spawn_location) * vec2(32., 32.), 28, 28),
         speed: vec2(0.,0.),
     };
 
@@ -121,7 +121,7 @@ pub async fn render_inside(theme: &Skin, asset_path: &str, map: &MapMeta, state:
             const PLAYER_SPRITE: u32 = 389;
 
             let pos = world.actor_pos(player.collider);
-            tiled_map.spr("interiors", PLAYER_SPRITE, Rect::new(map_offset_x+(pos.x*scale), map_offset_y+(pos.y*scale), 32.*scale, 32.*scale));
+            tiled_map.spr("interiors", PLAYER_SPRITE, Rect::new(map_offset_x+((pos.x-2)*scale), map_offset_y+((pos.y-2)*scale), 32.*scale, 32.*scale));
         }
         // Calculate Player Movement
         {

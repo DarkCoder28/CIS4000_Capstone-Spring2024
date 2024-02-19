@@ -4,9 +4,9 @@ pub mod ui;
 pub mod map_data;
 pub mod asset_updater;
 
-use std::sync::Arc;
+use std::{collections::VecDeque, sync::{Arc, Mutex}, thread};
 
-use common::ClientState;
+use common::{ClientState, UpdateEvent};
 use tracing::{info, error};
 
 use macroquad::{prelude::*, ui::{root_ui, Skin}};
@@ -112,7 +112,6 @@ async fn main() {
                 }
             }
             let (soc, _) = server_connection.unwrap();
-            // let (mut write, mut read) = socket.split();
             info!("Connected");
             socket2 = Some(soc);
             break 'server_connect;
@@ -200,21 +199,46 @@ async fn main() {
         break;
     }
 
-    let nav = render_outside(&custom_theme, &asset_path, &map_data.outside).await;
+    let update_queue: Arc<Mutex<VecDeque<UpdateEvent>>> = Arc::new(Mutex::new(VecDeque::new()));
+    let send_queue: Arc<Mutex<VecDeque<String>>> = Arc::new(Mutex::new(VecDeque::new()));
+
+    let thr_update_queue = update_queue.clone();
+    let thr_send_queue = send_queue.clone();
+    // let soc = &socket;
+    let handle = thread::spawn(move || {
+        loop {
+            // Get Updates
+            let msg = socket.read();
+            if msg.is_err() {
+                info!("Socket Error");
+                return;
+            }
+            let msg = msg.unwrap();
+            if msg.is_text() || msg.is_binary() {
+                let text = msg.into_text().unwrap();
+                let new_state = serde_json::from_str::<UpdateEvent>(&text).unwrap();
+                thr_update_queue.lock().unwrap().push_back(new_state);
+            } else if msg.is_ping() {
+                let ping = msg.into_data();
+                info!("Ping");
+                let _ = socket.send(tungstenite::Message::Pong(ping));
+                let _ = socket.flush();
+            }
+            // Send Updates
+            let mut send_lock = thr_send_queue.lock().unwrap();
+            while let Some(update) = send_lock.pop_front() {
+                info!("Update Sent: {}", &update);
+                let _ = socket.send(Text(update));
+                let _ = socket.flush();
+            }
+        }
+    });
+
+    let nav = render_outside(&custom_theme, &asset_path, &map_data.outside, &mut state, send_queue.clone()).await;
     info!("Nav: {}", &nav);
-    render_inside(&custom_theme, &asset_path, &map_data.insides.first().unwrap(), &mut state, &mut socket).await;
+    render_inside(&custom_theme, &asset_path, &map_data.insides.first().unwrap(), &mut state, update_queue.clone(), send_queue.clone()).await;
 
-    loop {
-        clear_background(PURPLE);
-
-        draw_line(40.0, 40.0, 100.0, 200.0, 15.0, BLUE);
-        draw_rectangle(screen_width() / 2.0 - 60.0, 100.0, 120.0, 60.0, GREEN);
-        draw_circle(screen_width() - 30.0, screen_height() - 30.0, 15.0, YELLOW);
-
-        draw_text("IT WORKS!", 20.0, 20.0, 30.0, DARKGRAY);
-
-        next_frame().await
-    }
+    handle.join().unwrap();
 }
 
 async fn err_msg(custom_theme: &Skin, msg: &str) {

@@ -1,10 +1,10 @@
 pub mod mongo;
 
-use common::{ClientAuth, ClientState};
+use common::{ClientAuth, ClientState, UpdateEvent};
 use futures_util::{stream::{SplitSink, SplitStream}, SinkExt, StreamExt};
 use tokio::{net::{TcpListener, TcpStream}, sync::broadcast::{self, Sender}};
 use tracing::{error, info, instrument};
-use std::net::SocketAddr;
+use std::{net::SocketAddr, time::Duration};
 use tokio_tungstenite::{accept_async, tungstenite::{Error, Message::{self, Text}, Result}, WebSocketStream};
 
 
@@ -14,7 +14,9 @@ async fn main() {
     let tracing_sub = tracing_subscriber::FmtSubscriber::new();
     let _ = tracing::subscriber::set_global_default(tracing_sub);
     // Setup Master Broadcast
-    let (master_broadcast, _) = broadcast::channel::<String>(16);
+    let (master_broadcast, _) = broadcast::channel::<Message>(16);
+    let p = pinger(master_broadcast.clone());
+    let watcher = watcher(master_broadcast.clone());
 
     let addr = "0.0.0.0:3000";
     let listener = TcpListener::bind(&addr).await.expect("Can't listen");
@@ -26,9 +28,38 @@ async fn main() {
 
         tokio::spawn(accept_connection(peer, stream, master_broadcast.clone()));
     }
+
+    p.await;
+    watcher.await;
 }
 
-async fn accept_connection(peer: SocketAddr, stream: TcpStream, master_broadcast: Sender<String>) {
+async fn watcher(master_broadcast: Sender<Message>) {
+    let mut sub = master_broadcast.subscribe();
+    while let Ok(msg) = sub.recv().await {
+        match msg {
+            Text(x) => {
+                info!("Event: {}", x);
+            },
+            Message::Ping(_) => {
+                info!("Ping");
+            },
+            _ => {}
+        }
+        // if msg.is_binary() || msg.is_text() {
+            
+        // }
+    }
+}
+
+async fn pinger(master_broadcast: Sender<Message>) {
+    loop {
+        let rand_data = vec![0b10101010, 64];
+        let _ = master_broadcast.send(Message::Ping(rand_data));
+        tokio::time::sleep(Duration::from_secs(1)).await;
+    }
+}
+
+async fn accept_connection(peer: SocketAddr, stream: TcpStream, master_broadcast: Sender<Message>) {
     if let Err(e) = handle_connection(peer, stream, master_broadcast).await {
         match e {
             Error::ConnectionClosed | Error::Protocol(_) | Error::Utf8 => (),
@@ -38,7 +69,7 @@ async fn accept_connection(peer: SocketAddr, stream: TcpStream, master_broadcast
 }
 
 #[instrument(name="client")]
-async fn handle_connection(peer: SocketAddr, stream: TcpStream, master_broadcast: Sender<String>) -> Result<()> {
+async fn handle_connection(peer: SocketAddr, stream: TcpStream, master_broadcast: Sender<Message>) -> Result<()> {
     let ws_stream = accept_async(stream).await.expect("Failed to accept");
     let (mut ws_write, mut ws_read) = ws_stream.split();
 
@@ -48,30 +79,45 @@ async fn handle_connection(peer: SocketAddr, stream: TcpStream, master_broadcast
     if client_state.is_none() {
         return Ok(());
     }
-    let client_state = client_state.unwrap();
+    let mut client_state = client_state.unwrap();
     info!("Sending client state");
     let init_state = serde_json::to_string(&client_state).unwrap();
     let _ = ws_write.send(Text(init_state)).await;
     info!("Client state sent");
 
-    let f = client_async(&mut ws_write, master_broadcast.clone());
+    let f = client_async(peer.to_string(), &mut ws_write, master_broadcast.clone());
 
     while let Some(msg) = ws_read.next().await {
         let msg = msg?;
         if msg.is_text() || msg.is_binary() {
-            let _ = master_broadcast.send(msg.into_text().unwrap());
+            let update = msg.clone().into_text().unwrap();
+            let update = serde_json::from_str::<UpdateEvent>(&update).unwrap();
+            client_state.apply_update(&update);
+            let _ = master_broadcast.send(msg);
+            if update.logout {
+                break;
+            }
         }
     }
 
     let client_exit_state = serde_json::to_string(&client_state).unwrap();
+    info!("Client '{}' exit state:\n{}", peer, client_exit_state);
 
     f.await;
 
     Ok(())
 }
 
-async fn client_async(ws: &mut SplitSink<WebSocketStream<TcpStream>, Message>, master_broadcast: Sender<String>) {
-    //
+async fn client_async(client_id: String, ws: &mut SplitSink<WebSocketStream<TcpStream>, Message>, master_broadcast: Sender<Message>) {
+    let mut receive = master_broadcast.subscribe();
+    loop {
+        let msg = receive.recv().await.unwrap();
+        let status = ws.send(msg).await;
+        if status.is_err() {
+            info!("Client '{}' disconnected", client_id);
+            return;
+        }
+    }
 }
 
 async fn auth(ws_read: &mut SplitStream<WebSocketStream<TcpStream>>) -> Option<ClientState> {

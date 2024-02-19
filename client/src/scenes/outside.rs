@@ -1,9 +1,12 @@
+use common::{ClientState, UpdateEvent};
 use macroquad::{
     prelude::*,
     ui::{root_ui, Skin},
 };
 
-pub async fn render_outside(theme: &Skin, asset_path: &str, outside_data: &Vec<crate::map_data::MapLocation>) -> String {
+type SendQueue = std::sync::Arc<std::sync::Mutex<std::collections::VecDeque<String>>>;
+
+pub async fn render_outside(theme: &Skin, asset_path: &str, outside_data: &Vec<crate::map_data::MapLocation>, state: &mut ClientState, send_queue: SendQueue) -> String {
     let asset_path = asset_path.to_string();
     // Load Outside Map
     let mut map_path = asset_path.clone();
@@ -44,6 +47,10 @@ pub async fn render_outside(theme: &Skin, asset_path: &str, outside_data: &Vec<c
             );
             exit = location;
             if exit.is_some() {
+                state.location = exit.clone().unwrap();
+                let update = UpdateEvent::from_state(state);
+                let update_ser = serde_json::to_string(&update).expect("Failed to serialize state");
+                send_queue.lock().unwrap().push_back(update_ser);
                 break;
             }
         }

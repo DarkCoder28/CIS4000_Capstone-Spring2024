@@ -89,7 +89,7 @@ pub async fn render_inside(theme: &Skin, asset_path: &str, map: &MapMeta, state:
     world.add_static_tiled_layer(static_colliders, 32., 32., map_width as usize, 1);
 
     let mut player = Player {
-        collider: world.add_actor(glam2mac(map.spawn_location) * vec2(32., 32.), 32, 32),
+        collider: world.add_actor(glam2mac(map.spawn_location) * vec2(30., 30.), 32, 32),
         speed: vec2(0.,0.),
     };
 

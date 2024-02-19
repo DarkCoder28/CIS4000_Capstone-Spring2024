@@ -32,6 +32,7 @@ pub async fn render_inside(theme: &Skin, asset_path: &str, map: &MapMeta, state:
     let mut map_path = asset_path.clone();
     map_path.push_str("maps/");
 
+    info!("Load Tilesets");
     let mut tilesets = Vec::new();
     for (name, path) in &map.tilemap_texture_mappings {
         let mut tileset_path = map_path.clone();
@@ -41,11 +42,13 @@ pub async fn render_inside(theme: &Skin, asset_path: &str, map: &MapMeta, state:
         tilesets.push((name.as_str(), tileset));
     }
 
+    info!("Load Tilemap");
     let mut tiled_map_path = map_path.clone();
     tiled_map_path.push_str(&map.tilemap_path);
     let tiled_map_json = load_string(&tiled_map_path).await.unwrap();
     let tiled_map = tiled::load_map(&tiled_map_json, tilesets.as_slice(), &[]).unwrap();
 
+    info!("Calculate Collisions & Layer Order");
     let mut map_width = 0;
     let mut map_height = 0;
     let mut static_colliders = vec![];
@@ -81,6 +84,7 @@ pub async fn render_inside(theme: &Skin, asset_path: &str, map: &MapMeta, state:
     // let f: Vec<bool> = static_colliders.iter().map(|t| match t {Tile::Solid => true, _ => false}).collect();
     // info!("{:?}", f.as_slice());
 
+    info!("Add collision to world");
     let mut world = World::new();
     world.add_static_tiled_layer(static_colliders, 32., 32., map_width as usize, 1);
 

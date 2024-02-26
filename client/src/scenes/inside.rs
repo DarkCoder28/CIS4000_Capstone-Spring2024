@@ -30,7 +30,6 @@ type SendQueue = Arc<Mutex<VecDeque<String>>>;
 pub async fn render_inside(theme: &Skin, asset_path: &str, map: &MapMeta, state: &mut ClientState, update_queue: UpdateQueue, send_queue: SendQueue) {
     let asset_path = asset_path.to_string();
     let mut map_path = asset_path.clone();
-    map_path.push_str("maps/");
 
     info!("Load Tilesets");
     let mut tilesets = Vec::new();

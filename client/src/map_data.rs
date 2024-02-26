@@ -26,7 +26,7 @@ pub struct MapMeta {
 
 pub async fn import_data(asset_path: &str) -> Maps {
     let mut data_path = String::from(asset_path);
-    data_path.push_str("maps/map_data.json");
+    data_path.push_str("map_data.json");
     let map_data = load_string(&data_path).await.unwrap();
     serde_json::from_str::<Maps>(&map_data).expect("Unable to deserialize map data")
 }

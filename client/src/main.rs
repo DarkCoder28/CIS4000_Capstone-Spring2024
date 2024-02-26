@@ -2,6 +2,7 @@ pub mod config;
 pub mod scenes;
 pub mod ui;
 pub mod map_data;
+pub mod quest_data;
 pub mod asset_updater;
 
 use std::{collections::VecDeque, sync::{Arc, Mutex}, thread};
@@ -62,6 +63,11 @@ async fn main() {
     let mut servers = load_servers(&config_path).unwrap_or_default();
     info!("Loading map data...");
     let map_data = map_data::import_data(&asset_path).await;
+    info!("Loading quest data...");
+    let quest_data = quest_data::import_quests(&asset_path).await;
+    for data in quest_data.iter() {
+        println!("{:#?}", data);
+    }
 
     let mut socket;
     let mut state: ClientState;

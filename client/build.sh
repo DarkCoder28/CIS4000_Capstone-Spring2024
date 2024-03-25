@@ -2,6 +2,10 @@
 
 rm ./out/*
 
+rm -R ./build_deps
+mkdir ./build_deps
+cp -r ../certs/* ./build_deps/
+
 # Windows Toolchain: x86_64-pc-windows-msvc
 # Linux Toolchain: x86_64-unknown-linux-gnu
 cargo build --release --target x86_64-unknown-linux-gnu

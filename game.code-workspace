@@ -6,6 +6,8 @@
 	],
 	"settings": {
 		"cSpell.words": [
+			"addrs",
+			"Asym",
 			"bson",
 			"chrono",
 			"combobox",
@@ -19,12 +21,20 @@
 			"macroquad",
 			"moka",
 			"navmenu",
+			"nodelay",
+			"nonblocking",
+			"pemfile",
+			"pkey",
+			"privkey",
+			"pubkey",
 			"Questline",
 			"questlines",
 			"refspecs",
+			"rustls",
 			"sapp",
 			"serde",
 			"serialisation",
+			"symm",
 			"tera",
 			"thesheerans",
 			"thiserror",
@@ -32,6 +42,7 @@
 			"tileset",
 			"tilesets",
 			"titlebar",
+			"tlsclient",
 			"tungstenite",
 			"webauthn"
 		]

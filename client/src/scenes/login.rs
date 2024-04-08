@@ -30,12 +30,12 @@ pub async fn render_login(theme: &Skin) -> ClientAuth {
             Vec2::new(screen_width() / 2. - 200., screen_height() / 2. - 75.),
             Vec2::new(400., 200.),
         )
-        .label("Add Server")
+        .label("Login")
         .titlebar(false)
         .ui(&mut root_ui(), |ui| {
-            let label_size = ui.calc_size("Add Server");
+            let label_size = ui.calc_size("Login");
             ui.label(None, "");
-            ui.label(Vec2::new(200. - (label_size.x / 2.), 0.), "Add Server");
+            ui.label(Vec2::new(200. - (label_size.x / 2.), 0.), "Login");
             widgets::InputText::new(hash!())
                 .size(Vec2::new(350., 35.))
                 .ui(ui, &mut auth.username);

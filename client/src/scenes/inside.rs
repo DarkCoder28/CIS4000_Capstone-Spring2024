@@ -30,7 +30,6 @@ type SendQueue = Arc<Mutex<VecDeque<String>>>;
 pub async fn render_inside(theme: &Skin, asset_path: &str, map: &MapMeta, state: &mut ClientState, update_queue: UpdateQueue, send_queue: SendQueue) {
     let asset_path = asset_path.to_string();
     let mut map_path = asset_path.clone();
-    map_path.push_str("maps/");
 
     info!("Load Tilesets");
     let mut tilesets = Vec::new();
@@ -89,7 +88,7 @@ pub async fn render_inside(theme: &Skin, asset_path: &str, map: &MapMeta, state:
     world.add_static_tiled_layer(static_colliders, 32., 32., map_width as usize, 1);
 
     let mut player = Player {
-        collider: world.add_actor(glam2mac(map.spawn_location) * vec2(32., 32.), 16, 16),
+        collider: world.add_actor(glam2mac(map.spawn_location) * vec2(32., 32.), 28, 28),
         speed: vec2(0.,0.),
     };
 
@@ -111,7 +110,7 @@ pub async fn render_inside(theme: &Skin, asset_path: &str, map: &MapMeta, state:
         let map_offset_y = (screen_height()-scaled_map_size_y)/2.;
         // Setup UI
         root_ui().push_skin(theme);
-        clear_background(DARKGRAY);
+        clear_background(BLACK);
         // Render Tiles
         for layer_name in &layer_order {
             tiled_map.draw_tiles(layer_name, Rect::new(map_offset_x, map_offset_y, scaled_map_size_x, scaled_map_size_y), None);
@@ -121,7 +120,7 @@ pub async fn render_inside(theme: &Skin, asset_path: &str, map: &MapMeta, state:
             const PLAYER_SPRITE: u32 = 389;
 
             let pos = world.actor_pos(player.collider);
-            tiled_map.spr("interiors", PLAYER_SPRITE, Rect::new(map_offset_x+(pos.x*scale), map_offset_y+(pos.y*scale), 32.*scale, 32.*scale));
+            tiled_map.spr("interiors", PLAYER_SPRITE, Rect::new(map_offset_x+((pos.x-2.)*scale), map_offset_y+((pos.y-2.)*scale), 32.*scale, 32.*scale));
         }
         // Calculate Player Movement
         {
@@ -157,8 +156,8 @@ pub async fn render_inside(theme: &Skin, asset_path: &str, map: &MapMeta, state:
                 send_queue.lock().unwrap().push_back(state_ser);
             }
 
-            world.move_h(player.collider, player.speed.x * 128. * get_frame_time());
-            world.move_v(player.collider, player.speed.y * -128. * get_frame_time());
+            world.move_h(player.collider, player.speed.x * 256. * get_frame_time());
+            world.move_v(player.collider, player.speed.y * -256. * get_frame_time());
         }
         // Update Others Locations
         {

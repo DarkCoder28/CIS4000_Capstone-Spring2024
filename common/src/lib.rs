@@ -1,3 +1,5 @@
+pub mod conn_lib;
+
 use glam::{f32::Vec2, vec2};
 use serde::{Serialize, Deserialize};
 

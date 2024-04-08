@@ -17,7 +17,11 @@ macroquad-platformer = "0.2.0"
 glam = { version = "0.25.0", features = [ "serde" ] }
 
 # Server Connection
-tungstenite = { version = "0.21.0", features = [ "native-tls-vendored" ] }
+# rustls = { version = "0.23.2", default-features = false, features = [ "std", "ring", "tls12", "logging" ] }
+# mio = { version = "0.8.11", features = [ "net", "os-poll" ] }
+# rustls-pemfile = "2"
+#tungstenite = { version = "0.21.0", features = [ "native-tls-vendored" ] }
+openssl = { version = "0.10.64", features = [ "vendored" ] }
 url = { version = "2.5.0", features = [ "serde" ] }
 common = { path = "../common" }
 

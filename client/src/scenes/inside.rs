@@ -47,6 +47,16 @@ pub async fn render_inside(theme: &Skin, asset_path: &str, map: &MapMeta, state:
     let tiled_map_json = load_string(&tiled_map_path).await.unwrap();
     let tiled_map = tiled::load_map(&tiled_map_json, tilesets.as_slice(), &[]).unwrap();
 
+    let f = tiled_map.get_tile("1_collide", 5, 5);
+    match f {
+        Some(x) => {
+            info!("{}", x.tileset);
+            info!("{}", x.id);
+            info!("{}", x.attrs);
+        }
+        None => {}
+    }
+
     info!("Calculate Collisions & Layer Order");
     let mut map_width = 0;
     let mut map_height = 0;

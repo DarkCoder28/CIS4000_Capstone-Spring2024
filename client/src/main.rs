@@ -77,10 +77,7 @@ async fn main() {
     info!("Loading map data...");
     let map_data = map_data::import_data(&asset_path).await;
     info!("Loading quest data...");
-    let quest_data = quest_data::import_quests(&asset_path).await;
-    for data in quest_data.iter() {
-        println!("{:#?}", data);
-    }
+    let game_data = quest_data::import_quests(&asset_path).await;
 
     let mut net_socket;
     // let mut net_key: SymKey;

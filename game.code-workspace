@@ -45,6 +45,7 @@
 			"tlsclient",
 			"tungstenite",
 			"webauthn"
-		]
+		],
+		"rust-analyzer.showUnlinkedFileNotification": false
 	}
 }

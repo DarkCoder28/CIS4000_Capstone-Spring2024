@@ -25,6 +25,7 @@
 			"nonblocking",
 			"pemfile",
 			"pkey",
+			"posx",
 			"privkey",
 			"pubkey",
 			"Questline",

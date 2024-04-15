@@ -43,7 +43,7 @@ pub async fn render_outside(theme: &Skin, asset_path: &str, outside_data: &Vec<c
                 local_to_pixel(vec2(location.br_corner.x, location.br_corner.y)), 
                 &location.label, 
                 mouse_pos.clone(), 
-                &location.label
+                &location.loc_id
             );
             exit = location;
             if exit.is_some() {

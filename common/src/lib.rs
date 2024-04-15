@@ -11,8 +11,8 @@ pub struct ClientState {
     pub pos: Vec2,
     pub speed: Vec2,
     pub location: String,
-    pub current_quests: Vec<String>,
-    pub complete_quests: Vec<String>,
+    pub current_quest_ids: Vec<u16>,
+    pub complete_quest_ids: Vec<u16>,
 }
 
 impl ClientState {
@@ -24,8 +24,8 @@ impl ClientState {
             location: String::from("outside"),
             new_user: true,
             authenticated: true,
-            current_quests: Vec::from(["GettingStarted".to_string()]),
-            complete_quests: Vec::new(),
+            current_quest_ids: Vec::from([1]),
+            complete_quest_ids: Vec::new(),
         }
     }
     pub fn apply_update(&mut self, update: &UpdateEvent) {

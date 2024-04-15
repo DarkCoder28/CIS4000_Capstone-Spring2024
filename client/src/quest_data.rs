@@ -12,7 +12,15 @@ pub struct GameData {
 pub struct ObjectLocation {
     pub object_id: String,
     pub loc_id: String,
+    pub sprite: TileId,
     pub position: Vec2,
+    pub relevant_quest_ids: Option<Vec<u16>>,
+}
+
+#[derive(Deserialize, Clone, Debug)]
+pub struct TileId {
+    pub sprite_map: String,
+    pub tile_id: u32,
 }
 
 #[derive(Deserialize, Clone, Debug)]

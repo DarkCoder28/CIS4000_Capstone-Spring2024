@@ -276,6 +276,7 @@ async fn main() {
         &custom_theme,
         &asset_path,
         &map_data.insides.first().unwrap(),
+        &game_data,
         &mut state,
         update_queue.clone(),
         send_queue.clone(),

@@ -1,15 +1,18 @@
-use std::{collections::VecDeque, sync::{Arc, Mutex}};
+use std::{
+    collections::VecDeque,
+    sync::{Arc, Mutex},
+};
 
+use ::glam::f32::vec2 as glam_vec2;
 use common::{ClientState, UpdateEvent};
 use macroquad::{
     prelude::*,
     ui::{root_ui, Skin},
 };
-use macroquad_tiled as tiled;
 use macroquad_platformer::*;
-use ::glam::f32::vec2 as glam_vec2;
+use macroquad_tiled as tiled;
 
-use crate::map_data::MapMeta;
+use crate::{map_data::MapMeta, quest_data::GameData};
 
 struct Player {
     collider: Actor,
@@ -27,7 +30,15 @@ struct Collision {
 type UpdateQueue = Arc<Mutex<VecDeque<UpdateEvent>>>;
 type SendQueue = Arc<Mutex<VecDeque<String>>>;
 
-pub async fn render_inside(theme: &Skin, asset_path: &str, map: &MapMeta, state: &mut ClientState, update_queue: UpdateQueue, send_queue: SendQueue) {
+pub async fn render_inside(
+    theme: &Skin,
+    asset_path: &str,
+    map: &MapMeta,
+    game_data: &GameData,
+    state: &mut ClientState,
+    update_queue: UpdateQueue,
+    send_queue: SendQueue,
+) {
     let asset_path = asset_path.to_string();
     let mut map_path = asset_path.clone();
 
@@ -69,7 +80,10 @@ pub async fn render_inside(theme: &Skin, asset_path: &str, map: &MapMeta, state:
             let layer_id: usize = layer_id.parse().unwrap();
             layer_order[layer_id] = name.as_str();
         }
-        if name.to_ascii_lowercase().contains(&"collide".to_ascii_lowercase()) {
+        if name
+            .to_ascii_lowercase()
+            .contains(&"collide".to_ascii_lowercase())
+        {
             if first {
                 map_width = layer.width;
                 map_height = layer.height;
@@ -83,7 +97,7 @@ pub async fn render_inside(theme: &Skin, asset_path: &str, map: &MapMeta, state:
                     });
                 } else {
                     if tile.is_some() {
-                        static_colliders[((y*layer.width)+x) as usize] = Tile::Solid;
+                        static_colliders[((y * layer.width) + x) as usize] = Tile::Solid;
                     }
                 }
             }
@@ -99,38 +113,99 @@ pub async fn render_inside(theme: &Skin, asset_path: &str, map: &MapMeta, state:
 
     let mut player = Player {
         collider: world.add_actor(glam2mac(map.spawn_location) * vec2(32., 32.), 28, 28),
-        speed: vec2(0.,0.),
+        speed: vec2(0., 0.),
     };
+
+    let mut relevant_objects = Vec::new();
+    for obj in &game_data.object_locations {
+        let mut relevant = false;
+        if obj.loc_id == state.location {
+            if obj.relevant_quest_ids.is_none() {
+                relevant = true;
+            } else {
+                for quest in &state.current_quest_ids {
+                    if obj.relevant_quest_ids.clone().unwrap().contains(quest) {
+                        relevant = true;
+                    }
+                }
+            }
+        }
+        if relevant {
+            info!(
+                "OBJECT (\n\tID: {}\n\tPOS: ({}, {})\n)",
+                obj.object_id, obj.position.x, obj.position.y
+            );
+            relevant_objects.push(obj);
+        }
+    }
 
     let mut others: Vec<UpdateEvent> = Vec::new();
 
     loop {
         // Create Camera
-        let camera = Camera2D::from_display_rect(Rect::new(0.0, screen_height(), screen_width(), screen_height()*-1.));
+        let camera = Camera2D::from_display_rect(Rect::new(
+            0.0,
+            screen_height(),
+            screen_width(),
+            screen_height() * -1.,
+        ));
         set_camera(&camera);
         // Calculate Render Scale
         let map_size_x = map_width as f32 * 32.;
         let map_size_y = map_height as f32 * 32.;
-        let scale_x = screen_width()/map_size_x;
-        let scale_y = screen_height()/map_size_y;
+        let scale_x = screen_width() / map_size_x;
+        let scale_y = screen_height() / map_size_y;
         let scale = scale_x.min(scale_y);
-        let scaled_map_size_x = map_size_x*scale;
-        let scaled_map_size_y = map_size_y*scale;
-        let map_offset_x = (screen_width()-scaled_map_size_x)/2.;
-        let map_offset_y = (screen_height()-scaled_map_size_y)/2.;
+        let scaled_map_size_x = map_size_x * scale;
+        let scaled_map_size_y = map_size_y * scale;
+        let map_offset_x = (screen_width() - scaled_map_size_x) / 2.;
+        let map_offset_y = (screen_height() - scaled_map_size_y) / 2.;
         // Setup UI
         root_ui().push_skin(theme);
         clear_background(BLACK);
         // Render Tiles
         for layer_name in &layer_order {
-            tiled_map.draw_tiles(layer_name, Rect::new(map_offset_x, map_offset_y, scaled_map_size_x, scaled_map_size_y), None);
+            tiled_map.draw_tiles(
+                layer_name,
+                Rect::new(
+                    map_offset_x,
+                    map_offset_y,
+                    scaled_map_size_x,
+                    scaled_map_size_y,
+                ),
+                None,
+            );
+        }
+        // Render Objects
+        {
+            for obj in &relevant_objects {
+                tiled_map.spr(
+                    &obj.sprite.sprite_map,
+                    obj.sprite.tile_id,
+                    Rect::new(
+                        map_offset_x + ((obj.position.x * 32.) * scale),
+                        map_offset_y + ((obj.position.y * 32.) * scale),
+                        32. * scale,
+                        32. * scale,
+                    ),
+                );
+            }
         }
         // Render Player
         {
             const PLAYER_SPRITE: u32 = 389;
 
             let pos = world.actor_pos(player.collider);
-            tiled_map.spr("interiors", PLAYER_SPRITE, Rect::new(map_offset_x+((pos.x-2.)*scale), map_offset_y+((pos.y-2.)*scale), 32.*scale, 32.*scale));
+            tiled_map.spr(
+                "interiors",
+                PLAYER_SPRITE,
+                Rect::new(
+                    map_offset_x + ((pos.x - 2.) * scale),
+                    map_offset_y + ((pos.y - 2.) * scale),
+                    32. * scale,
+                    32. * scale,
+                ),
+            );
         }
         // Calculate Player Movement
         {

@@ -33,16 +33,14 @@ pub async fn write_flush(stream: Arc<Mutex<SslStream<TcpStream>>>, msg: String) 
         msg_data[i] = b;
     }
     // Write Message
-    let mut writer = stream.lock().expect("Failed to lock stream");
-    let s = writer.write_all(&msg_data);
-    writer.flush()?;
+    let s = stream.lock().expect("Failed to lock stream").write_all(&msg_data);
+    stream.lock().expect("Failed to lock stream").flush()?;
     s
 }
 
 pub async fn read_stream(stream: Arc<Mutex<SslStream<TcpStream>>>) -> Result<String, std::io::Error> {
-    let mut reader = stream.lock().expect("Failed to lock stream");
     let mut buf = [0u8; 1024];
-    reader.read_exact(&mut buf)?;
+    stream.lock().expect("Failed to lock stream").read_exact(&mut buf)?;
     let msg = String::from_utf8(buf.to_vec()).unwrap();
     Ok(String::from(msg.trim_matches(char::from(0))))
 }

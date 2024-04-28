@@ -6,14 +6,12 @@ pub mod scenes;
 pub mod ui;
 
 use std::{
-    collections::VecDeque,
-    io::{Read, Write},
-    net::{TcpStream, ToSocketAddrs},
-    sync::{Arc, Mutex},
+    collections::VecDeque, f32::consts::E, io::{Read, Write}, net::{TcpStream, ToSocketAddrs}, sync::{Arc, Mutex}, thread, time::Duration
 };
 
 use common::{
-    conn_lib::{read_stream_client, write_flush_client}, ClientState, UpdateEvent
+    conn_lib::{read_stream_client, write_flush_client},
+    ClientState, UpdateEvent,
 };
 use openssl::ssl::{SslConnector, SslMethod, SslVerifyMode};
 use tracing::{error, info};
@@ -118,8 +116,19 @@ async fn main() {
             connector.set_verify(SslVerifyMode::NONE);
             let connector = connector.build();
             let stream =
-                TcpStream::connect((&server).to_socket_addrs().unwrap().next().unwrap()).unwrap();
-            net_socket = Arc::new(Mutex::new(connector.connect("home.thesheerans.com", stream).unwrap()));
+                match TcpStream::connect((&server).to_socket_addrs().unwrap().next().unwrap()) {
+                    Ok(s) => s,
+                    Err(e) => {
+                        error!("{}", e);
+                        err_msg(&custom_theme, "Couldn't Connect to Server").await;
+                        continue 'server_select;
+                    }
+                };
+                let _ = stream.set_read_timeout(Some(Duration::from_millis(250)));
+                let _ = stream.set_write_timeout(Some(Duration::from_millis(250)));
+            net_socket = Arc::new(Mutex::new(
+                connector.connect("home.thesheerans.com", stream).unwrap(),
+            ));
             info!("Connected to server.");
 
             info!("Negotiating secure connection...");
@@ -157,7 +166,6 @@ async fn main() {
         // let auth_send_status = net_client.writer().write_all(auth_ser.as_bytes());
         // let _ = net_client.writer().flush();
         // let _ = net_client.write_tls(&mut net_socket);
-        info!("Send Status: {:#?}", auth_send_status);
         if auth_send_status.is_err() {
             error!("Couldn't send auth packet");
             let timer = get_time();
@@ -179,7 +187,7 @@ async fn main() {
         // let _ = net_client.read_tls(&mut net_socket);
         // let _ = net_client.process_new_packets();
         // let server_msg = net_client.reader().read_to_string(&mut msg);
-        let server_msg = read_stream_client(net_socket.clone());//conn_lib_2::read_msg_client(&mut net_socket, &net_key);
+        let server_msg = read_stream_client(net_socket.clone()); //conn_lib_2::read_msg_client(&mut net_socket, &net_key);
 
         if server_msg.is_err() {
             error!("{}", server_msg.unwrap_err());
@@ -225,65 +233,73 @@ async fn main() {
                 next_frame().await
             }
         }
+        info!("State Received");
         break;
     }
 
+    info!("Creating update thread...");
     let update_queue: Arc<Mutex<VecDeque<UpdateEvent>>> = Arc::new(Mutex::new(VecDeque::new()));
-    let send_queue: Arc<Mutex<VecDeque<String>>> = Arc::new(Mutex::new(VecDeque::new()));
+    let send_queue: Arc<Mutex<VecDeque<UpdateEvent>>> = Arc::new(Mutex::new(VecDeque::new()));
 
-    let thr_update_queue = update_queue.clone();
-    let thr_send_queue = send_queue.clone();
-    // let soc = &socket;
-    // let handle = thread::spawn(move || {
-    //     loop {
-    //         // Get Updates
-    //         let msg = socket.read();
-    //         if msg.is_err() {
-    //             info!("Socket Error");
-    //             return;
-    //         }
-    //         let msg = msg.unwrap();
-    //         if msg.is_text() || msg.is_binary() {
-    //             let text = msg.into_text().unwrap();
-    //             let new_state = serde_json::from_str::<UpdateEvent>(&text).unwrap();
-    //             thr_update_queue.lock().unwrap().push_back(new_state);
-    //         } else if msg.is_ping() {
-    //             let ping = msg.into_data();
-    //             info!("Ping");
-    //             let _ = socket.send(tungstenite::Message::Pong(ping));
-    //             let _ = socket.flush();
-    //         }
-    //         // Send Updates
-    //         let mut send_lock = thr_send_queue.lock().unwrap();
-    //         while let Some(update) = send_lock.pop_front() {
-    //             info!("Update Sent: {}", &update);
-    //             let _ = socket.send(Text(update));
-    //             let _ = socket.flush();
-    //         }
-    //     }
-    // });
+    let update_queue_2 = update_queue.clone();
+    let send_queue_2 = send_queue.clone();
+    let t = thread::spawn(move || {
+        loop {
+            while let Some(update) = send_queue_2.lock().unwrap().pop_front() {
+                let msg = serde_json::to_string(&update).expect("Failed to serialize state");
+                let send_status = write_flush_client(net_socket.clone(), msg);
+                if send_status.is_err() {
+                    error!("{}", send_status.unwrap_err());
+                    error!("{}", "Server connection closed");
+                    panic!("Server connection lost... panic & close game");
+                }
+                if update.logout {
+                    return;
+                }
+            }
+            while let Ok(update) = read_stream_client(net_socket.clone()) {
+                let event = serde_json::from_str::<UpdateEvent>(&update).unwrap();
+                info!("{:#?}", &event);
+                update_queue_2.lock().unwrap().push_back(event);
+            }
+            thread::sleep(Duration::from_secs(1));
+        }
+    });
 
-    let nav = render_outside(
-        &custom_theme,
-        &asset_path,
-        &map_data.outside,
-        &mut state,
-        send_queue.clone(),
-    )
-    .await;
-    info!("Nav: {}", &nav);
-    render_inside(
-        &custom_theme,
-        &asset_path,
-        &map_data.insides.first().unwrap(),
-        &game_data,
-        &mut state,
-        update_queue.clone(),
-        send_queue.clone(),
-    )
-    .await;
+    loop {
+        info!("Current Location: {}", &state.location);
+        if state.location.eq_ignore_ascii_case("outside") {
+            info!("Rendering outside...");
+            let loc = render_outside(
+                &custom_theme,
+                &asset_path,
+                &map_data.outside,
+                &mut state,
+                send_queue.clone(),
+            )
+            .await;
+            if loc == "exit" {
+                err_msg(&custom_theme, "Closing...").await;
+                break;
+            }
+            state.location = loc;
+            info!("Going to {}", &state.location);
+        }
+        info!("Rendering inside({})...", &state.location);
+        render_inside(
+            &custom_theme,
+            &asset_path,
+            &map_data.insides,
+            &game_data,
+            &mut state,
+            update_queue.clone(),
+            send_queue.clone(),
+        )
+        .await;
+        info!("{:#?}", &state);
+    }
 
-    // handle.join().unwrap();
+    let _ = t.join();
 }
 
 async fn err_msg(custom_theme: &Skin, msg: &str) {

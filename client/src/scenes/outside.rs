@@ -1,12 +1,19 @@
 use common::{ClientState, UpdateEvent};
 use macroquad::{
     prelude::*,
+    time,
     ui::{root_ui, Skin},
 };
 
-type SendQueue = std::sync::Arc<std::sync::Mutex<std::collections::VecDeque<String>>>;
+type SendQueue = std::sync::Arc<std::sync::Mutex<std::collections::VecDeque<UpdateEvent>>>;
 
-pub async fn render_outside(theme: &Skin, asset_path: &str, outside_data: &Vec<crate::map_data::MapLocation>, state: &mut ClientState, send_queue: SendQueue) -> String {
+pub async fn render_outside(
+    theme: &Skin,
+    asset_path: &str,
+    outside_data: &Vec<crate::map_data::MapLocation>,
+    state: &mut ClientState,
+    send_queue: SendQueue,
+) -> String {
     let asset_path = asset_path.to_string();
     // Load Outside Map
     let mut map_path = asset_path.clone();
@@ -15,7 +22,17 @@ pub async fn render_outside(theme: &Skin, asset_path: &str, outside_data: &Vec<c
         .await
         .expect("Failed to load Outside Map");
 
+    let esc_timeout = time::get_time();
     loop {
+        // Register ESC to leave building
+        if (time::get_time() - esc_timeout) > 0.25 && is_key_pressed(KeyCode::Escape) {
+            state.location = "outside".to_string();
+            let mut update = UpdateEvent::from_state_mut(state);
+            update.logout = true;
+            send_queue.lock().unwrap().push_back(update);
+            return "exit".to_string();
+        }
+        //
         let mut exit = None;
         root_ui().push_skin(&theme);
         let mouse_pos = mouse_position();
@@ -39,18 +56,18 @@ pub async fn render_outside(theme: &Skin, asset_path: &str, outside_data: &Vec<c
 
         for location in outside_data {
             let location = draw_bounding_box(
-                local_to_pixel(vec2(location.tl_corner.x, location.tl_corner.y)), 
-                local_to_pixel(vec2(location.br_corner.x, location.br_corner.y)), 
-                &location.label, 
-                mouse_pos.clone(), 
-                &location.loc_id
+                local_to_pixel(vec2(location.tl_corner.x, location.tl_corner.y)),
+                local_to_pixel(vec2(location.br_corner.x, location.br_corner.y)),
+                &location.label,
+                mouse_pos.clone(),
+                &location.loc_id,
             );
             exit = location;
             if exit.is_some() {
                 state.location = exit.clone().unwrap();
                 let update = UpdateEvent::from_state(state);
-                let update_ser = serde_json::to_string(&update).expect("Failed to serialize state");
-                send_queue.lock().unwrap().push_back(update_ser);
+                info!("Sent update: {:#?}", &update);
+                send_queue.lock().unwrap().push_back(update);
                 break;
             }
         }
@@ -70,11 +87,10 @@ fn draw_bounding_box(
     mouse_pos: Vec2,
     location: &str,
 ) -> Option<String> {
-    let hover = 
-            mouse_pos.x > pos1.x
-        &&  mouse_pos.x < pos2.x
-        &&  mouse_pos.y > pos1.y
-        &&  mouse_pos.y < pos2.y;
+    let hover = mouse_pos.x > pos1.x
+        && mouse_pos.x < pos2.x
+        && mouse_pos.y > pos1.y
+        && mouse_pos.y < pos2.y;
     if is_mouse_button_pressed(MouseButton::Left) && hover {
         return Some(location.to_string());
     }
@@ -84,13 +100,7 @@ fn draw_bounding_box(
     } else {
         Color::from_rgba(255, 255, 0, 64)
     };
-    draw_rectangle(
-        pos1.x,
-        pos1.y,
-        rect_size.x,
-        rect_size.y,
-        rect_color,
-    );
+    draw_rectangle(pos1.x, pos1.y, rect_size.x, rect_size.y, rect_color);
     let text_pos = Vec2::new(pos1.x + (rect_size.x / 2.), pos1.y + (rect_size.y / 2.));
     draw_text_ex(
         label,

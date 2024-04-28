@@ -28,19 +28,24 @@ struct Collision {
 }
 
 type UpdateQueue = Arc<Mutex<VecDeque<UpdateEvent>>>;
-type SendQueue = Arc<Mutex<VecDeque<String>>>;
+type SendQueue = Arc<Mutex<VecDeque<UpdateEvent>>>;
 
 pub async fn render_inside(
     theme: &Skin,
     asset_path: &str,
-    map: &MapMeta,
+    map_data: &Vec<MapMeta>,
     game_data: &GameData,
     state: &mut ClientState,
     update_queue: UpdateQueue,
     send_queue: SendQueue,
 ) {
+    let map_id = map_data
+        .iter()
+        .position(|v| &v.loc_id == &state.location)
+        .unwrap();
+    let map = map_data.get(map_id).unwrap();
     let asset_path = asset_path.to_string();
-    let mut map_path = asset_path.clone();
+    let map_path = asset_path.clone();
 
     info!("Load Tilesets");
     let mut tilesets = Vec::new();
@@ -58,15 +63,15 @@ pub async fn render_inside(
     let tiled_map_json = load_string(&tiled_map_path).await.unwrap();
     let tiled_map = tiled::load_map(&tiled_map_json, tilesets.as_slice(), &[]).unwrap();
 
-    let f = tiled_map.get_tile("1_collide", 5, 5);
-    match f {
-        Some(x) => {
-            info!("{}", x.tileset);
-            info!("{}", x.id);
-            info!("{}", x.attrs);
-        }
-        None => {}
-    }
+    // let f = tiled_map.get_tile("1_collide", 5, 5);
+    // match f {
+    //     Some(x) => {
+    //         info!("{}", x.tileset);
+    //         info!("{}", x.id);
+    //         info!("{}", x.attrs);
+    //     }
+    //     None => {}
+    // }
 
     info!("Calculate Collisions & Layer Order");
     let mut map_width = 0;
@@ -111,8 +116,14 @@ pub async fn render_inside(
     let mut world = World::new();
     world.add_static_tiled_layer(static_colliders, 32., 32., map_width as usize, 1);
 
+    // Setup Player
+    let player_pos = if state.pos.eq(&glam_vec2(0., 0.)) {
+        glam2mac(map.spawn_location) * vec2(32., 32.)
+    } else {
+        glam2mac(state.pos)
+    };
     let mut player = Player {
-        collider: world.add_actor(glam2mac(map.spawn_location) * vec2(32., 32.), 28, 28),
+        collider: world.add_actor(player_pos, 28, 28),
         speed: vec2(0., 0.),
     };
 
@@ -142,6 +153,15 @@ pub async fn render_inside(
     let mut others: Vec<UpdateEvent> = Vec::new();
 
     loop {
+        // Register ESC to leave building (this will change... esc will close the game and there will be a location to walk to to exit the building)
+        if is_key_pressed(KeyCode::Escape) {
+            state.location = "outside".to_string();
+            let mut update = UpdateEvent::from_state_mut(state);
+            update.pos = glam_vec2(0., 0.);
+            update.speed = glam_vec2(0., 0.);
+            send_queue.lock().unwrap().push_back(update);
+            break;
+        }
         // Create Camera
         let camera = Camera2D::from_display_rect(Rect::new(
             0.0,
@@ -237,8 +257,7 @@ pub async fn render_inside(
                 state.pos = glam_vec2(pos.x, pos.y);
                 state.speed = glam_vec2(player.speed.x, player.speed.y);
                 let update = UpdateEvent::from_state_mut(state);
-                let state_ser = serde_json::to_string(&update).expect("Failed to serialize state");
-                send_queue.lock().unwrap().push_back(state_ser);
+                send_queue.lock().unwrap().push_back(update);
             }
 
             world.move_h(player.collider, player.speed.x * 256. * get_frame_time());
@@ -248,6 +267,7 @@ pub async fn render_inside(
         {
             let mut updates = update_queue.lock().unwrap();
             while let Some(update) = updates.pop_front() {
+                // info!("{:#?}", &update);
                 for i in 0..others.len() {
                     if others[i].username == update.username {
                         others.remove(i);

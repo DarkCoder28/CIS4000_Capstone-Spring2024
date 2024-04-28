@@ -17,21 +17,21 @@ services:
       options:
         max-size: "12m"
         max-file: "5"
-  # mongodb-server:
-  #   container_name: gwynedd-valley-mongodb
-  #   image: mongo:latest
-  #   restart: unless-stopped
-  #   hostname: mongodbserver
-  #   ports:
-  #     - 3001:27017 # Debug; production doesn't need this forwarded
-  #   volumes:
-  #     - gwynedd-valley-database:/data/db
-  #     - gwynedd-valley-database-config:/data/configdb
-  #   logging:
-  #     driver: json-file
-  #     options:
-  #       max-size: "12m"
-  #       max-file: "5"
+  mongodb-server:
+    container_name: gwynedd-valley-mongodb
+    image: mongo:latest
+    restart: unless-stopped
+    hostname: mongodbserver
+    ports:
+      - 3001:27017 # Debug; production doesn't need this forwarded
+    volumes:
+      - gwynedd-valley-database:/data/db
+      - gwynedd-valley-database-config:/data/configdb
+    logging:
+      driver: json-file
+      options:
+        max-size: "12m"
+        max-file: "5"
 
 volumes: 
   gwynedd-valley-database:

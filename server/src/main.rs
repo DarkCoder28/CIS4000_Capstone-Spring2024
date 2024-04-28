@@ -2,13 +2,13 @@ pub mod client_auth;
 pub mod handle_client;
 pub mod mongo;
 
-use openssl::ssl::{SslAcceptor, SslFiletype, SslMethod, SslStream};
-use tokio::sync::broadcast::{self, Sender};
-use tracing::{error, info};
-use std::net::{TcpListener, TcpStream};
-use std::sync::Arc;
-use std::thread;
 use crate::handle_client::handle_client;
+use common::UpdateEvent;
+use openssl::ssl::{SslAcceptor, SslFiletype, SslMethod};
+use std::net::TcpListener;
+use std::sync::Arc;
+use tokio::sync::broadcast::{self, Receiver};
+use tracing::{error, info};
 
 #[tokio::main]
 async fn main() {
@@ -34,8 +34,8 @@ async fn main() {
     let listener = TcpListener::bind("0.0.0.0:3000").unwrap();
 
     // Setup Master Broadcast Channel
-    let (master_broadcast, _) = broadcast::channel::<String>(16);
-    let _watcher = watcher(master_broadcast.clone());
+    let (master_broadcast, watch) = broadcast::channel::<(u8, UpdateEvent)>(512);
+    let _watcher = watcher(watch);
 
     for stream in listener.incoming() {
         match stream {
@@ -55,9 +55,12 @@ async fn main() {
     }
 }
 
-async fn watcher(master_broadcast: Sender<String>) {
-    let mut sub = master_broadcast.subscribe();
-    while let Ok(msg) = sub.recv().await {
-        info!("Event: {}", msg);
+async fn watcher(mut master_broadcast: Receiver<(u8, UpdateEvent)>) {
+    loop {
+        if let Ok((peer, msg)) = master_broadcast.blocking_recv() {
+            info!("Event: {}: {:#?}", peer, msg);
+        } else {
+            error!("Issue with master broadcast");
+        }
     }
 }

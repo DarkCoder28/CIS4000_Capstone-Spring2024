@@ -5,14 +5,18 @@ use std::{
 
 use ::glam::f32::vec2 as glam_vec2;
 use common::{ClientState, UpdateEvent};
+use git2::Object;
 use macroquad::{
     prelude::*,
-    ui::{root_ui, Skin},
+    ui::{hash, root_ui, widgets, Skin},
 };
 use macroquad_platformer::*;
 use macroquad_tiled as tiled;
 
-use crate::{map_data::MapMeta, quest_data::GameData};
+use crate::{
+    map_data::MapMeta,
+    quest_data::{self, get_quest_data, GameData, Quest, Questline},
+};
 
 struct Player {
     collider: Actor,
@@ -27,11 +31,14 @@ struct Collision {
     right: bool,
 }
 
+const DEBUG: bool = true;
+
 type UpdateQueue = Arc<Mutex<VecDeque<UpdateEvent>>>;
 type SendQueue = Arc<Mutex<VecDeque<UpdateEvent>>>;
 
 pub async fn render_inside(
-    theme: &Skin,
+    dialog_theme: &Skin,
+    quests_theme: &Skin,
     asset_path: &str,
     map_data: &Vec<MapMeta>,
     game_data: &GameData,
@@ -181,7 +188,6 @@ pub async fn render_inside(
         let map_offset_x = (screen_width() - scaled_map_size_x) / 2.;
         let map_offset_y = (screen_height() - scaled_map_size_y) / 2.;
         // Setup UI
-        root_ui().push_skin(theme);
         clear_background(BLACK);
         // Render Tiles
         for layer_name in &layer_order {
@@ -227,15 +233,18 @@ pub async fn render_inside(
                 ),
             );
         }
+        // Debug Locator
+        if DEBUG {
+            if is_key_pressed(KeyCode::P) {
+                let pos = world.actor_pos(player.collider);
+                let pos_x = (pos.x / scale / 32.) as i32;
+                let pos_y = (pos.y / scale / 32.) as i32;
+                info!("Current Block Location: ({}, {})", pos_x, pos_y);
+            }
+        }
         // Calculate Player Movement
         {
             let pos = world.actor_pos(player.collider);
-            // let collision = Collision {
-            //     up: world.collide_check(player.collider, pos+vec2(0.,-1.)),
-            //     down: world.collide_check(player.collider, pos+vec2(0.,1.)),
-            //     left: world.collide_check(player.collider, pos+vec2(-1.,0.)),
-            //     right: world.collide_check(player.collider, pos+vec2(1.,0.)),
-            // };
 
             let player_speed_start = player.speed.clone();
             if is_key_down(KeyCode::Right) || is_key_down(KeyCode::D) {
@@ -278,10 +287,105 @@ pub async fn render_inside(
                 }
             }
         }
+        // Quest Data
+        let mut current_quests: Vec<Quest> = Vec::new();
+        for quest_id in &state.current_quest_ids {
+            current_quests.push(get_quest_data(*quest_id, &game_data.questlines).unwrap_or(
+                Quest {
+                    speaker: "".to_string(),
+                    dialog: "ERROR FINDING QUEST".to_string(),
+                    quest_id: Some(*quest_id),
+                    quest_name: Some("Error finding quest".to_string()),
+                    completion: None,
+                },
+            ));
+        }
+        // Render Quest Status Indicators
+        {
+            // info!("Current Quests: {:#?}", current_quests);
+            root_ui().push_skin(&quests_theme);
+            render_quest_status(&current_quests);
+            root_ui().pop_skin();
+        }
+        // Render Dialog
+        {
+            if is_key_pressed(KeyCode::Enter) || is_key_pressed(KeyCode::KpEnter) {
+                for quest in current_quests {
+                    let quest = quest.clone();
+                    let completion_type = quest.completion.clone().unwrap().completion_type;
+                    if completion_type.eq_ignore_ascii_case("interact") {
+                        let object = match &quest.completion {
+                            Some(x) => &x.interact_object_id,
+                            None => &None,
+                        };
+                        if let Some(object) = object {
+                            for obj in &game_data.object_locations {
+                                if obj.object_id.eq_ignore_ascii_case(&object) {
+                                    let obj_location = obj;
+                                    let player_pos = world.actor_pos(player.collider) / 32.;
+                                    if player_pos.abs_diff_eq(glam2mac(obj_location.position), 3.) {
+                                        info!("Interacted with '{}'", object);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
         //
         root_ui().pop_skin();
         next_frame().await
     }
+}
+
+fn render_quest_status(quests: &Vec<Quest>) {
+    if quests.len() <= 0 {
+        return;
+    }
+    let mut names: Vec<String> = Vec::new();
+    for quest in quests {
+        if let Some(quest_name) = &quest.quest_name {
+            names.push(quest_name.clone());
+        }
+    }
+    let mut longest = &names[0];
+    for name in &names {
+        if name.len() > longest.len() {
+            longest = name;
+        }
+    }
+    let Vec2 {
+        x: width,
+        y: height,
+    } = root_ui().calc_size(&longest);
+    let margin = screen_width() * 0.025;
+    let window_width = width + (margin * 2.);
+    let window_height = (height * names.len() as f32) + (margin * 2.);
+
+    root_ui().move_window(
+        1010,
+        Vec2::new(screen_width() - window_width - margin, margin),
+    );
+    widgets::Window::new(
+        1010,
+        Vec2::new(screen_width() - window_width - margin, margin),
+        Vec2::new(window_width, window_height),
+    )
+    .label("Quests")
+    .titlebar(true)
+    .close_button(false)
+    .ui(&mut root_ui(), |ui| {
+        let mut y_pos = margin / 2.;
+        for name in names {
+            ui.label(vec2(margin, y_pos), &name);
+            y_pos += height;
+        }
+    });
+}
+
+fn render_quest_dialog(questline: Questline, quest_id: i16) {
+    //
 }
 
 fn glam2mac(vec: ::glam::f32::Vec2) -> Vec2 {

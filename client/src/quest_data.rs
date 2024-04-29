@@ -61,3 +61,14 @@ pub async fn import_quests(asset_path: &str) -> GameData {
             .expect("Unable to deserialize object data"),
     }
 }
+
+pub fn get_quest_data(quest_id: u16, questlines: &Vec<Questline>) -> Option<Quest> {
+    for questline in questlines {
+        for quest in &questline.quests {
+            if quest.quest_id.is_some_and(|id| id == quest_id) {
+                return Some(quest.clone());
+            }
+        }
+    }
+    return None;
+}

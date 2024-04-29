@@ -32,6 +32,22 @@ use crate::{
     ui::theme::generate_theme,
 };
 
+fn window_conf() -> Conf {
+    Conf {
+        window_title: "Gwynedd Valley".to_owned(),
+        fullscreen: false,
+        window_height: 720,
+        window_width: 1280,
+        high_dpi: true,
+        window_resizable: true,
+        platform: miniquad::conf::Platform {
+            linux_backend: miniquad::conf::LinuxBackend::WaylandWithX11Fallback,
+            ..Default::default()
+        },
+        ..Default::default()
+    }
+}
+
 static TIMEOUT: f64 = 3.;
 
 #[macroquad::main("Gwynedd Valley")]
@@ -58,7 +74,7 @@ async fn main() {
     }
 
     // Setup Theming
-    let _default_theme = Arc::new(root_ui().default_skin().clone());
+    let default_theme = Arc::new(root_ui().default_skin().clone());
     let custom_theme = Arc::new(generate_theme());
 
     // Update Assets
@@ -288,6 +304,7 @@ async fn main() {
         info!("Rendering inside({})...", &state.location);
         render_inside(
             &custom_theme,
+            &default_theme,
             &asset_path,
             &map_data.insides,
             &game_data,

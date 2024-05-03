@@ -1,21 +1,20 @@
 use std::{
-    collections::VecDeque,
-    sync::{Arc, Mutex},
+    net::TcpStream, sync::{Arc, Mutex}
 };
 
 use ::glam::f32::vec2 as glam_vec2;
-use common::{ClientState, UpdateEvent};
-use git2::Object;
+use common::ClientState;
 use macroquad::{
     prelude::*,
-    ui::{hash, root_ui, widgets, Skin},
+    ui::{root_ui, widgets, Skin},
 };
 use macroquad_platformer::*;
 use macroquad_tiled as tiled;
+use openssl::ssl::SslStream;
 
 use crate::{
     map_data::MapMeta,
-    quest_data::{self, get_quest_data, GameData, Quest, Questline},
+    quest_data::{get_quest_data, GameData, Quest, Questline},
 };
 
 struct Player {
@@ -33,9 +32,6 @@ struct Collision {
 
 const DEBUG: bool = true;
 
-type UpdateQueue = Arc<Mutex<VecDeque<UpdateEvent>>>;
-type SendQueue = Arc<Mutex<VecDeque<UpdateEvent>>>;
-
 pub async fn render_inside(
     dialog_theme: &Skin,
     quests_theme: &Skin,
@@ -43,8 +39,7 @@ pub async fn render_inside(
     map_data: &Vec<MapMeta>,
     game_data: &GameData,
     state: &mut ClientState,
-    update_queue: UpdateQueue,
-    send_queue: SendQueue,
+    stream: Arc<Mutex<SslStream<TcpStream>>>
 ) {
     let map_id = map_data
         .iter()
@@ -52,7 +47,8 @@ pub async fn render_inside(
         .unwrap();
     let map = map_data.get(map_id).unwrap();
     let asset_path = asset_path.to_string();
-    let map_path = asset_path.clone();
+    let mut map_path = asset_path.clone();
+    map_path.push_str("maps/");
 
     info!("Load Tilesets");
     let mut tilesets = Vec::new();
@@ -157,16 +153,10 @@ pub async fn render_inside(
         }
     }
 
-    let mut others: Vec<UpdateEvent> = Vec::new();
-
     loop {
         // Register ESC to leave building (this will change... esc will close the game and there will be a location to walk to to exit the building)
         if is_key_pressed(KeyCode::Escape) {
-            state.location = "outside".to_string();
-            let mut update = UpdateEvent::from_state_mut(state);
-            update.pos = glam_vec2(0., 0.);
-            update.speed = glam_vec2(0., 0.);
-            send_queue.lock().unwrap().push_back(update);
+            state.location = String::from("outside");
             break;
         }
         // Create Camera
@@ -261,31 +251,9 @@ pub async fn render_inside(
             } else {
                 player.speed.y = 0.;
             }
-            if player_speed_start != player.speed {
-                // Tell server new player info
-                state.pos = glam_vec2(pos.x, pos.y);
-                state.speed = glam_vec2(player.speed.x, player.speed.y);
-                let update = UpdateEvent::from_state_mut(state);
-                send_queue.lock().unwrap().push_back(update);
-            }
 
             world.move_h(player.collider, player.speed.x * 256. * get_frame_time());
             world.move_v(player.collider, player.speed.y * -256. * get_frame_time());
-        }
-        // Update Others Locations
-        {
-            let mut updates = update_queue.lock().unwrap();
-            while let Some(update) = updates.pop_front() {
-                // info!("{:#?}", &update);
-                for i in 0..others.len() {
-                    if others[i].username == update.username {
-                        others.remove(i);
-                    }
-                }
-                if !update.logout {
-                    others.push(update);
-                }
-            }
         }
         // Quest Data
         let mut current_quests: Vec<Quest> = Vec::new();

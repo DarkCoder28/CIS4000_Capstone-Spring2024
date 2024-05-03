@@ -1,18 +1,19 @@
-use common::{ClientState, UpdateEvent};
+use std::{net::TcpStream, sync::{Arc, Mutex}};
+
+use common::{conn_lib::write_flush_client, ClientState};
 use macroquad::{
     prelude::*,
     time,
     ui::{root_ui, Skin},
 };
-
-type SendQueue = std::sync::Arc<std::sync::Mutex<std::collections::VecDeque<UpdateEvent>>>;
+use openssl::ssl::SslStream;
 
 pub async fn render_outside(
     theme: &Skin,
     asset_path: &str,
     outside_data: &Vec<crate::map_data::MapLocation>,
     state: &mut ClientState,
-    send_queue: SendQueue,
+    stream: Arc<Mutex<SslStream<TcpStream>>>
 ) -> String {
     let asset_path = asset_path.to_string();
     // Load Outside Map
@@ -27,9 +28,8 @@ pub async fn render_outside(
         // Register ESC to leave building
         if (time::get_time() - esc_timeout) > 0.25 && is_key_pressed(KeyCode::Escape) {
             state.location = "outside".to_string();
-            let mut update = UpdateEvent::from_state_mut(state);
-            update.logout = true;
-            send_queue.lock().unwrap().push_back(update);
+            let ser = serde_json::to_string(&state).unwrap();
+            let _ = write_flush_client(stream.clone(), ser);
             return "exit".to_string();
         }
         //
@@ -65,9 +65,6 @@ pub async fn render_outside(
             exit = location;
             if exit.is_some() {
                 state.location = exit.clone().unwrap();
-                let update = UpdateEvent::from_state(state);
-                info!("Sent update: {:#?}", &update);
-                send_queue.lock().unwrap().push_back(update);
                 break;
             }
         }

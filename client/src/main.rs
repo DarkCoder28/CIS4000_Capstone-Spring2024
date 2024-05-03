@@ -6,12 +6,12 @@ pub mod scenes;
 pub mod ui;
 
 use std::{
-    collections::VecDeque, f32::consts::E, io::{Read, Write}, net::{TcpStream, ToSocketAddrs}, sync::{Arc, Mutex}, thread, time::Duration
+    collections::VecDeque, net::{TcpStream, ToSocketAddrs}, sync::{Arc, Mutex}, thread, time::Duration
 };
 
 use common::{
     conn_lib::{read_stream_client, write_flush_client},
-    ClientState, UpdateEvent,
+    ClientState,
 };
 use openssl::ssl::{SslConnector, SslMethod, SslVerifyMode};
 use tracing::{error, info};
@@ -68,7 +68,7 @@ async fn main() {
     let mut asset_path = String::from("");
     if let Some(base_dirs) = BaseDirs::new() {
         asset_path = base_dirs.data_dir().to_str().unwrap().to_string();
-        asset_path.push_str("/gwynedd-valley/")
+        asset_path.push_str("/gwynedd-valley/");
     } else {
         asset_path.push_str("gwynedd-valley/");
     }
@@ -253,35 +253,6 @@ async fn main() {
         break;
     }
 
-    info!("Creating update thread...");
-    let update_queue: Arc<Mutex<VecDeque<UpdateEvent>>> = Arc::new(Mutex::new(VecDeque::new()));
-    let send_queue: Arc<Mutex<VecDeque<UpdateEvent>>> = Arc::new(Mutex::new(VecDeque::new()));
-
-    let update_queue_2 = update_queue.clone();
-    let send_queue_2 = send_queue.clone();
-    let t = thread::spawn(move || {
-        loop {
-            while let Some(update) = send_queue_2.lock().unwrap().pop_front() {
-                let msg = serde_json::to_string(&update).expect("Failed to serialize state");
-                let send_status = write_flush_client(net_socket.clone(), msg);
-                if send_status.is_err() {
-                    error!("{}", send_status.unwrap_err());
-                    error!("{}", "Server connection closed");
-                    panic!("Server connection lost... panic & close game");
-                }
-                if update.logout {
-                    return;
-                }
-            }
-            while let Ok(update) = read_stream_client(net_socket.clone()) {
-                let event = serde_json::from_str::<UpdateEvent>(&update).unwrap();
-                info!("{:#?}", &event);
-                update_queue_2.lock().unwrap().push_back(event);
-            }
-            thread::sleep(Duration::from_secs(1));
-        }
-    });
-
     loop {
         info!("Current Location: {}", &state.location);
         if state.location.eq_ignore_ascii_case("outside") {
@@ -291,7 +262,7 @@ async fn main() {
                 &asset_path,
                 &map_data.outside,
                 &mut state,
-                send_queue.clone(),
+                net_socket.clone()
             )
             .await;
             if loc == "exit" {
@@ -309,14 +280,11 @@ async fn main() {
             &map_data.insides,
             &game_data,
             &mut state,
-            update_queue.clone(),
-            send_queue.clone(),
+            net_socket.clone()
         )
         .await;
         info!("{:#?}", &state);
     }
-
-    let _ = t.join();
 }
 
 async fn err_msg(custom_theme: &Skin, msg: &str) {

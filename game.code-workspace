@@ -17,6 +17,7 @@
 			"Deque",
 			"editbox",
 			"fetchhead",
+			"gvdata",
 			"jsutils",
 			"macroquad",
 			"moka",

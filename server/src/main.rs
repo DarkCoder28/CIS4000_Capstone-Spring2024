@@ -1,14 +1,11 @@
 pub mod client_auth;
 pub mod handle_client;
-pub mod mongo;
 
 use crate::handle_client::handle_client;
-use common::UpdateEvent;
 use openssl::ssl::{SslAcceptor, SslFiletype, SslMethod};
 use std::net::TcpListener;
 use std::sync::Arc;
-use tokio::sync::broadcast::{self, Receiver};
-use tracing::{error, info};
+use tracing::error;
 
 #[tokio::main]
 async fn main() {
@@ -34,20 +31,20 @@ async fn main() {
     let listener = TcpListener::bind("0.0.0.0:3000").unwrap();
 
     // Setup Master Broadcast Channel
-    let (master_broadcast, watch) = broadcast::channel::<(u8, UpdateEvent)>(512);
-    let _watcher = watcher(watch);
+    // let (master_broadcast, watch) = broadcast::channel::<(u8, UpdateEvent)>(512);
+    // let _watcher = watcher(watch);
 
     for stream in listener.incoming() {
         match stream {
             Ok(stream) => {
                 let acceptor = acceptor.clone();
-                let mb = master_broadcast.clone();
+                // let mb = master_broadcast.clone();
                 tokio::spawn(async move {
                     let stream = acceptor.accept(stream).unwrap();
                     let mut peer_id = [0u8; 1];
                     let _ = openssl::rand::rand_bytes(&mut peer_id);
                     let peer_id = peer_id[0];
-                    handle_client(mb, peer_id, stream).await;
+                    handle_client(peer_id, stream).await;
                 });
             }
             Err(_) => { /* connection failed */ }
@@ -55,12 +52,12 @@ async fn main() {
     }
 }
 
-async fn watcher(mut master_broadcast: Receiver<(u8, UpdateEvent)>) {
-    loop {
-        if let Ok((peer, msg)) = master_broadcast.blocking_recv() {
-            info!("Event: {}: {:#?}", peer, msg);
-        } else {
-            error!("Issue with master broadcast");
-        }
-    }
-}
+// async fn watcher(mut master_broadcast: Receiver<(u8, UpdateEvent)>) {
+//     loop {
+//         if let Ok((peer, msg)) = master_broadcast.blocking_recv() {
+//             info!("Event: {}: {:#?}", peer, msg);
+//         } else {
+//             error!("Issue with master broadcast");
+//         }
+//     }
+// }

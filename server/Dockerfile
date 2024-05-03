@@ -2,7 +2,8 @@ FROM alpine:3
 LABEL edu.gmercyu.gwynedd-valley.authors="agsheeran@duck.com"
 RUN apk add --no-cache --upgrade bash
 EXPOSE 3000/tcp
-ENV MONGODB_URI="mongodb://mongodbserver:27017"
+VOLUME /mnt/gv-data/
+# ENV MONGODB_URI="mongodb://mongodbserver:27017"
 WORKDIR /srv/certs/
 COPY ./build_cache/cert.pem /srv/certs/
 COPY ./build_cache/server.key.pem /srv/certs/

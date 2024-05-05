@@ -209,11 +209,11 @@ pub async fn render_inside(
         }
         // Render Player
         {
-            const PLAYER_SPRITE: u32 = 389;
+            const PLAYER_SPRITE: u32 = 0;
 
             let pos = world.actor_pos(player.collider);
             tiled_map.spr(
-                "interiors",
+                "objects",
                 PLAYER_SPRITE,
                 Rect::new(
                     map_offset_x + ((pos.x - 2.) * scale),

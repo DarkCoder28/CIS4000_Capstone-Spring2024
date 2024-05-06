@@ -1,4 +1,4 @@
-use macroquad::{prelude::*, ui::{hash, root_ui, widgets, Skin}};
+use macroquad::{prelude::*, ui::{root_ui, widgets, Skin}};
 
 pub fn show_popup(theme: &Skin, msg: String) {
     root_ui().push_skin(&theme);

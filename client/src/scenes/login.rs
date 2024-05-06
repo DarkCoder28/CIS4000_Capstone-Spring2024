@@ -1,9 +1,3 @@
-// let mut sha3_256hasher = Sha3_256Hasher::default();
-// sha3_256hasher.write(b"your string here");
-
-// let u64result = sha3_256hasher.finish();
-// let bytes_result = HasherContext::finish(&mut sha3_256hasher);
-
 use std::hash::{Hash, Hasher};
 
 use common::ClientAuth;
@@ -13,7 +7,7 @@ use macroquad::{
 };
 use rs_sha3_256::Sha3_256Hasher;
 
-pub async fn render_login(theme: &Skin) -> ClientAuth {
+pub async fn render_login(_theme: &Skin) -> ClientAuth {
     let mut sha3_256hasher = Sha3_256Hasher::default();
 
     let mut pwd = String::new();
@@ -23,8 +17,6 @@ pub async fn render_login(theme: &Skin) -> ClientAuth {
     };
 
     loop {
-        // root_ui().push_skin(&theme);
-
         widgets::Window::new(
             0b0110110001101111011001110110100101101110,
             Vec2::new(screen_width() / 2. - 200., screen_height() / 2. - 75.),
@@ -43,7 +35,6 @@ pub async fn render_login(theme: &Skin) -> ClientAuth {
                 .size(Vec2::new(350., 35.))
                 .password(true)
                 .ui(ui, &mut pwd);
-            // ui.input_text(hash!(), "", &mut server_to_add);
             if ui.button(Vec2::new(125., 110.), "Submit") {
                 pwd.hash(&mut sha3_256hasher);
                 auth.pass_hash = sha3_256hasher.finish();
@@ -55,8 +46,6 @@ pub async fn render_login(theme: &Skin) -> ClientAuth {
         if auth.pass_hash != u64::MAX {
             return auth;
         }
-
-        // root_ui().pop_skin();
         next_frame().await
     }
 }

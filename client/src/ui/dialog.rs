@@ -10,7 +10,6 @@ use tracing::{error, info};
 
 use crate::quest_data::{get_next_questline_id, Questline};
 
-// #[instrument(name = "render_dialog")]
 pub fn render_dialog(
     questlines: &Vec<Questline>,
     open_time: f64,
@@ -62,8 +61,6 @@ pub fn render_dialog(
                     speaker = speaker.replace("<name>", &state.username);
                     ui.label(None, &speaker);
                     ui.label(None, "");
-                    // ui.label(vec2(50., 50.), &current.dialog);
-                    // let label_size = ui.calc_size(&current.dialog);
                     let mut label_text = current.dialog.clone();
                     label_text = label_text.replace("<name>", &state.username);
                     let mut current_width = 0.;
@@ -83,12 +80,6 @@ pub fn render_dialog(
                     for line in wrapped_text.split('\n') {
                         ui.label(None, line);
                     }
-                    // ui.label(None, &wrapped_text);
-                    // Label::new(&wrapped_text)
-                    //     // .position(vec2(screen_width() * 0.01, screen_height() * 0.01))
-                    //     .multiline(label_size.y)
-                    //     .size(vec2(screen_width() * 0.88, screen_height() * 0.23))
-                    //     .ui(ui);
                 });
                 root_ui().move_window(
                     0b011001000110100101100001011011000110111101100111,

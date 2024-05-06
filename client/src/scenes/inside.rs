@@ -1,8 +1,3 @@
-// use std::{
-//     net::TcpStream, sync::{Arc, Mutex}
-// };
-
-use git2::Object;
 use ::glam::f32::vec2 as glam_vec2;
 use common::ClientState;
 use macroquad::{
@@ -35,13 +30,12 @@ struct Collision {
 const DEBUG: bool = true;
 
 pub async fn render_inside(
-    dialog_theme: &Skin,
+    _dialog_theme: &Skin,
     quests_theme: &Skin,
     asset_path: &str,
     map_data: &Vec<MapMeta>,
     game_data: &GameData,
     state: &mut ClientState,
-    // stream: Arc<Mutex<SslStream<TcpStream>>>
 ) {
     let map_id = map_data
         .iter()
@@ -67,16 +61,6 @@ pub async fn render_inside(
     tiled_map_path.push_str(&map.tilemap_path);
     let tiled_map_json = load_string(&tiled_map_path).await.unwrap();
     let tiled_map = tiled::load_map(&tiled_map_json, tilesets.as_slice(), &[]).unwrap();
-
-    // let f = tiled_map.get_tile("1_collide", 5, 5);
-    // match f {
-    //     Some(x) => {
-    //         info!("{}", x.tileset);
-    //         info!("{}", x.id);
-    //         info!("{}", x.attrs);
-    //     }
-    //     None => {}
-    // }
 
     info!("Calculate Collisions & Layer Order");
     let mut map_width = 0;
@@ -114,8 +98,6 @@ pub async fn render_inside(
             first = false;
         }
     }
-    // let f: Vec<bool> = static_colliders.iter().map(|t| match t {Tile::Solid => true, _ => false}).collect();
-    // info!("{:?}", f.as_slice());
 
     info!("Add collision to world");
     let mut world = World::new();
@@ -131,32 +113,6 @@ pub async fn render_inside(
         collider: world.add_actor(player_pos, 28, 28),
         speed: vec2(0., 0.),
     };
-
-    // let mut relevant_objects = Vec::new();
-    // for obj in &game_data.object_locations {
-    //     let mut relevant = false;
-    //     if obj.loc_id == state.location {
-    //         if obj.relevant_quest_ids.is_none() {
-    //             relevant = true;
-    //         } else {
-    //             if obj
-    //                 .relevant_quest_ids
-    //                 .clone()
-    //                 .unwrap()
-    //                 .contains(&state.current_quest_id)
-    //             {
-    //                 relevant = true;
-    //             }
-    //         }
-    //     }
-    //     if relevant {
-    //         info!(
-    //             "OBJECT (\n\tID: {}\n\tPOS: ({}, {})\n)",
-    //             obj.object_id, obj.position.x, obj.position.y
-    //         );
-    //         relevant_objects.push(obj);
-    //     }
-    // }
 
     let mut open_time = get_time();
     let mut done_dialog = true;
@@ -290,7 +246,6 @@ pub async fn render_inside(
             });
         // Render Quest Status Indicators
         {
-            // info!("Current Quests: {:#?}", current_quests);
             root_ui().push_skin(&quests_theme);
             render_quest_status(&game_data.questlines, &state);
             root_ui().pop_skin();
@@ -363,12 +318,7 @@ fn render_quest_status(questlines: &Vec<Questline>, state: &ClientState) {
     .titlebar(true)
     .close_button(false)
     .ui(&mut root_ui(), |ui| {
-        // let mut y_pos = margin / 2.;
         ui.label(None, &name);
-        // for name in names {
-        //     ui.label(vec2(margin, y_pos), &name);
-        //     y_pos += height;
-        // }
     });
 }
 

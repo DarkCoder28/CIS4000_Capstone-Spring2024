@@ -19,6 +19,7 @@
 			"fetchhead",
 			"fullscreen",
 			"gvdata",
+			"Hasher",
 			"jsutils",
 			"macroquad",
 			"miniquad",

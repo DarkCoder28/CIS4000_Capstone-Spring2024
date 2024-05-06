@@ -2,7 +2,6 @@ use common::ClientState;
 use glam::f32::Vec2;
 use macroquad::file::load_string;
 use serde::Deserialize;
-use tracing::info;
 
 #[derive(Deserialize, Clone, Debug)]
 pub struct GameData {

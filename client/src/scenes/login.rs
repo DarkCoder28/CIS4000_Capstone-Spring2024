@@ -23,7 +23,7 @@ pub async fn render_login(theme: &Skin) -> ClientAuth {
     };
 
     loop {
-        root_ui().push_skin(&theme);
+        // root_ui().push_skin(&theme);
 
         widgets::Window::new(
             hash!(),
@@ -55,7 +55,7 @@ pub async fn render_login(theme: &Skin) -> ClientAuth {
             return auth;
         }
 
-        root_ui().pop_skin();
+        // root_ui().pop_skin();
         next_frame().await
     }
 }

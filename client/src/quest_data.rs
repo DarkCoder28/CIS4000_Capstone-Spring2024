@@ -1,6 +1,8 @@
+use common::ClientState;
 use glam::f32::Vec2;
 use macroquad::file::load_string;
 use serde::Deserialize;
+use tracing::info;
 
 #[derive(Deserialize, Clone, Debug)]
 pub struct GameData {
@@ -25,6 +27,7 @@ pub struct TileId {
 
 #[derive(Deserialize, Clone, Debug)]
 pub struct Questline {
+    pub id: u16,
     pub quests: Vec<Quest>,
 }
 
@@ -71,4 +74,15 @@ pub fn get_quest_data(quest_id: u16, questlines: &Vec<Questline>) -> Option<Ques
         }
     }
     return None;
+}
+
+pub fn get_next_questline_id(questlines: &Vec<Questline>, current_questline:u16) -> u16 {
+    let questline_ids: Vec<u16> = questlines.iter().map(|ql|ql.id).collect();
+    let mut next_id = u16::MAX;
+    for questline in questline_ids {
+        if questline > current_questline && questline < next_id {
+            next_id = questline;
+        }
+    }
+    next_id
 }

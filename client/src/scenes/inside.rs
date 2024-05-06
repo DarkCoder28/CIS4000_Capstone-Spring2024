@@ -1,6 +1,6 @@
-use std::{
-    net::TcpStream, sync::{Arc, Mutex}
-};
+// use std::{
+//     net::TcpStream, sync::{Arc, Mutex}
+// };
 
 use ::glam::f32::vec2 as glam_vec2;
 use common::ClientState;
@@ -10,11 +10,12 @@ use macroquad::{
 };
 use macroquad_platformer::*;
 use macroquad_tiled as tiled;
-use openssl::ssl::SslStream;
+// use openssl::ssl::SslStream;
 
 use crate::{
     map_data::MapMeta,
     quest_data::{get_quest_data, GameData, Quest, Questline},
+    ui::dialog::render_dialog,
 };
 
 struct Player {
@@ -39,7 +40,7 @@ pub async fn render_inside(
     map_data: &Vec<MapMeta>,
     game_data: &GameData,
     state: &mut ClientState,
-    stream: Arc<Mutex<SslStream<TcpStream>>>
+    // stream: Arc<Mutex<SslStream<TcpStream>>>
 ) {
     let map_id = map_data
         .iter()
@@ -137,10 +138,13 @@ pub async fn render_inside(
             if obj.relevant_quest_ids.is_none() {
                 relevant = true;
             } else {
-                for quest in &state.current_quest_ids {
-                    if obj.relevant_quest_ids.clone().unwrap().contains(quest) {
-                        relevant = true;
-                    }
+                if obj
+                    .relevant_quest_ids
+                    .clone()
+                    .unwrap()
+                    .contains(&state.current_quest_id)
+                {
+                    relevant = true;
                 }
             }
         }
@@ -152,6 +156,9 @@ pub async fn render_inside(
             relevant_objects.push(obj);
         }
     }
+
+    let mut open_time = get_time();
+    let mut done_dialog = true;
 
     loop {
         // Register ESC to leave building (this will change... esc will close the game and there will be a location to walk to to exit the building)
@@ -234,9 +241,7 @@ pub async fn render_inside(
         }
         // Calculate Player Movement
         {
-            let pos = world.actor_pos(player.collider);
-
-            let player_speed_start = player.speed.clone();
+            // let pos = world.actor_pos(player.collider);
             if is_key_down(KeyCode::Right) || is_key_down(KeyCode::D) {
                 player.speed.x = 1.;
             } else if is_key_down(KeyCode::Left) || is_key_down(KeyCode::A) {
@@ -256,49 +261,54 @@ pub async fn render_inside(
             world.move_v(player.collider, player.speed.y * -256. * get_frame_time());
         }
         // Quest Data
-        let mut current_quests: Vec<Quest> = Vec::new();
-        for quest_id in &state.current_quest_ids {
-            current_quests.push(get_quest_data(*quest_id, &game_data.questlines).unwrap_or(
-                Quest {
-                    speaker: "".to_string(),
-                    dialog: "ERROR FINDING QUEST".to_string(),
-                    quest_id: Some(*quest_id),
-                    quest_name: Some("Error finding quest".to_string()),
-                    completion: None,
-                },
-            ));
-        }
+        let current_quest = get_quest_data(state.current_quest_id, &game_data.questlines)
+            .unwrap_or(Quest {
+                speaker: "".to_string(),
+                dialog: "ERROR FINDING QUEST".to_string(),
+                quest_id: Some(state.current_quest_id),
+                quest_name: Some("Error finding quest".to_string()),
+                completion: None,
+            });
         // Render Quest Status Indicators
         {
             // info!("Current Quests: {:#?}", current_quests);
             root_ui().push_skin(&quests_theme);
-            render_quest_status(&current_quests);
+            render_quest_status(&game_data.questlines, &state);
             root_ui().pop_skin();
         }
         // Render Dialog
         {
             if is_key_pressed(KeyCode::Enter) || is_key_pressed(KeyCode::KpEnter) {
-                for quest in current_quests {
-                    let quest = quest.clone();
-                    let completion_type = quest.completion.clone().unwrap().completion_type;
-                    if completion_type.eq_ignore_ascii_case("interact") {
-                        let object = match &quest.completion {
-                            Some(x) => &x.interact_object_id,
-                            None => &None,
-                        };
-                        if let Some(object) = object {
-                            for obj in &game_data.object_locations {
-                                if obj.object_id.eq_ignore_ascii_case(&object) {
-                                    let obj_location = obj;
-                                    let player_pos = world.actor_pos(player.collider) / 32.;
-                                    if player_pos.abs_diff_eq(glam2mac(obj_location.position), 3.) {
-                                        info!("Interacted with '{}'", object);
-                                    }
+                let quest = current_quest.clone();
+                let completion_type = quest.completion.clone().unwrap().completion_type;
+                if completion_type.eq_ignore_ascii_case("interact") {
+                    let object = match &quest.completion {
+                        Some(x) => &x.interact_object_id,
+                        None => &None,
+                    };
+                    if let Some(object) = object {
+                        for obj in &game_data.object_locations {
+                            if obj.object_id.eq_ignore_ascii_case(&object) {
+                                let obj_location = obj;
+                                let player_pos = world.actor_pos(player.collider) / 32.;
+                                if player_pos.abs_diff_eq(glam2mac(obj_location.position), 3.) {
+                                    info!("Interacted with '{}'", object);
+                                    done_dialog = false;
+                                    state.complete_quest_ids.push(state.current_questline_id+state.current_quest_id);
+                                    // let next_quest_id =
+                                    //     get_next_quest_id(&game_data.questlines, &state);
+                                    // state.current_quest_id = next_quest_id;
+                                    state.dialog_offset += 1;
                                 }
                             }
                         }
                     }
                 }
+            }
+            if !done_dialog {
+                let f = render_dialog(&game_data.questlines, open_time, state);
+                open_time = f.1;
+                done_dialog = f.0;
             }
         }
         //
@@ -307,29 +317,24 @@ pub async fn render_inside(
     }
 }
 
-fn render_quest_status(quests: &Vec<Quest>) {
-    if quests.len() <= 0 {
-        return;
-    }
-    let mut names: Vec<String> = Vec::new();
-    for quest in quests {
-        if let Some(quest_name) = &quest.quest_name {
-            names.push(quest_name.clone());
-        }
-    }
-    let mut longest = &names[0];
-    for name in &names {
-        if name.len() > longest.len() {
-            longest = name;
-        }
-    }
+fn render_quest_status(questlines: &Vec<Questline>, state: &ClientState) {
+    let quest = questlines
+        .iter()
+        .find(|ql| ql.id == state.current_questline_id)
+        .unwrap()
+        .quests
+        .iter()
+        .find(|q| q.quest_id.is_some() && q.quest_id.unwrap() == state.current_quest_id)
+        .unwrap();
+    let name = quest.quest_name.clone().unwrap();
+
     let Vec2 {
         x: width,
         y: height,
-    } = root_ui().calc_size(&longest);
+    } = root_ui().calc_size(&name);
     let margin = screen_width() * 0.025;
     let window_width = width + (margin * 2.);
-    let window_height = (height * names.len() as f32) + (margin * 2.);
+    let window_height = height + (margin * 2.);
 
     root_ui().move_window(
         1010,
@@ -344,16 +349,13 @@ fn render_quest_status(quests: &Vec<Quest>) {
     .titlebar(true)
     .close_button(false)
     .ui(&mut root_ui(), |ui| {
-        let mut y_pos = margin / 2.;
-        for name in names {
-            ui.label(vec2(margin, y_pos), &name);
-            y_pos += height;
-        }
+        // let mut y_pos = margin / 2.;
+        ui.label(None, &name);
+        // for name in names {
+        //     ui.label(vec2(margin, y_pos), &name);
+        //     y_pos += height;
+        // }
     });
-}
-
-fn render_quest_dialog(questline: Questline, quest_id: i16) {
-    //
 }
 
 fn glam2mac(vec: ::glam::f32::Vec2) -> Vec2 {

@@ -6,7 +6,7 @@ pub mod scenes;
 pub mod ui;
 
 use std::{
-    collections::VecDeque, net::{TcpStream, ToSocketAddrs}, sync::{Arc, Mutex}, thread, time::Duration
+    net::{TcpStream, ToSocketAddrs}, sync::{Arc, Mutex}, time::Duration
 };
 
 use common::{
@@ -32,6 +32,7 @@ use crate::{
     ui::theme::generate_theme,
 };
 
+#[allow(dead_code)]
 fn window_conf() -> Conf {
     Conf {
         window_title: "Gwynedd Valley".to_owned(),
@@ -261,6 +262,7 @@ async fn main() {
                 &custom_theme,
                 &asset_path,
                 &map_data.outside,
+                &game_data,
                 &mut state,
                 net_socket.clone()
             )
@@ -280,7 +282,7 @@ async fn main() {
             &map_data.insides,
             &game_data,
             &mut state,
-            net_socket.clone()
+            // net_socket.clone()
         )
         .await;
         info!("{:#?}", &state);

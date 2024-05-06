@@ -15,7 +15,7 @@ pub async fn run_server_selector(theme: Arc<Skin>, servers: &mut Vec<String>) ->
         root_ui().push_skin(&theme);
         clear_background(GRAY);
         widgets::Window::new(
-            hash!(),
+            0b011100110110010101101100011001010110001101110100,
             Vec2::new(screen_width() / 10.0, screen_height() / 10.0),
             Vec2::new(screen_width() / 10.0 * 8.0, screen_height() / 10.0 * 8.0),
         )
@@ -63,9 +63,10 @@ pub async fn run_server_selector(theme: Arc<Skin>, servers: &mut Vec<String>) ->
                 show_add_server = true;
             }
         });
+        root_ui().move_window(0b011100110110010101101100011001010110001101110100, vec2(screen_width() / 10.0, screen_height() / 10.0));
         if show_add_server {
             widgets::Window::new(
-                hash!(),
+                0b0000101011011101,
                 Vec2::new(screen_width() / 2. - 200., screen_height() / 2. - 75.),
                 Vec2::new(400., 150.),
             )
@@ -85,10 +86,11 @@ pub async fn run_server_selector(theme: Arc<Skin>, servers: &mut Vec<String>) ->
                     show_add_server = false;
                 }
             });
+            root_ui().move_window(0b0000101011011101, vec2(screen_width() / 2. - 200., screen_height() / 2. - 75.));
         }
         if to_delete.0 != usize::MAX {
             widgets::Window::new(
-                hash!(),
+                0b011001000110010101101100011001010111010001100101,
                 Vec2::new(screen_width() / 2. - 200., screen_height() / 2. - 75.),
                 Vec2::new(400., 150.),
             )
@@ -106,6 +108,7 @@ pub async fn run_server_selector(theme: Arc<Skin>, servers: &mut Vec<String>) ->
                     to_delete = (usize::MAX, String::new());
                 }
             });
+            root_ui().move_window(0b011001000110010101101100011001010111010001100101, vec2(screen_width() / 2. - 200., screen_height() / 2. - 75.));
         }
         if connect.len() > 0 {
             return connect;

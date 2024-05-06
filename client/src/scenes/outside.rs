@@ -8,10 +8,13 @@ use macroquad::{
 };
 use openssl::ssl::SslStream;
 
+use crate::{quest_data::GameData, ui::dialog::render_dialog};
+
 pub async fn render_outside(
     theme: &Skin,
     asset_path: &str,
     outside_data: &Vec<crate::map_data::MapLocation>,
+    game_data: &GameData,
     state: &mut ClientState,
     stream: Arc<Mutex<SslStream<TcpStream>>>
 ) -> String {
@@ -24,6 +27,8 @@ pub async fn render_outside(
         .expect("Failed to load Outside Map");
 
     let esc_timeout = time::get_time();
+    let mut open_time = get_time();
+    let mut done_dialog = false;
     loop {
         // Register ESC to leave building
         if (time::get_time() - esc_timeout) > 0.25 && is_key_pressed(KeyCode::Escape) {
@@ -68,8 +73,12 @@ pub async fn render_outside(
                 break;
             }
         }
-
         root_ui().pop_skin();
+        if state.current_questline_id == 0 && state.current_quest_id == 0 && !done_dialog {
+            let f = render_dialog(&game_data.questlines, open_time, state);
+            open_time = f.1;
+            done_dialog = f.0;
+        }
         if exit.is_some() {
             return exit.unwrap();
         }

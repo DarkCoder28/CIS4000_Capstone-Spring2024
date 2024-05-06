@@ -26,7 +26,7 @@ pub async fn render_login(theme: &Skin) -> ClientAuth {
         // root_ui().push_skin(&theme);
 
         widgets::Window::new(
-            hash!(),
+            0b0110110001101111011001110110100101101110,
             Vec2::new(screen_width() / 2. - 200., screen_height() / 2. - 75.),
             Vec2::new(400., 200.),
         )
@@ -50,6 +50,7 @@ pub async fn render_login(theme: &Skin) -> ClientAuth {
                 pwd.clear();
             }
         });
+        root_ui().move_window(0b0110110001101111011001110110100101101110, Vec2::new(screen_width() / 2. - 200., screen_height() / 2. - 75.));
 
         if auth.pass_hash != u64::MAX {
             return auth;

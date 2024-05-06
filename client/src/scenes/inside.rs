@@ -295,9 +295,6 @@ pub async fn render_inside(
                                     info!("Interacted with '{}'", object);
                                     done_dialog = false;
                                     state.complete_quest_ids.push(state.current_questline_id+state.current_quest_id);
-                                    // let next_quest_id =
-                                    //     get_next_quest_id(&game_data.questlines, &state);
-                                    // state.current_quest_id = next_quest_id;
                                     state.dialog_offset += 1;
                                 }
                             }

@@ -30,7 +30,6 @@ pub fn render_dialog(
             let dialog_data = questline.quests.get(quest_index..);
             if dialog_data.is_some() {
                 let dialog_data = dialog_data.unwrap();
-                // info!("Questline: {}\t\tOffset: {}", &state.current_questline_id, &state.dialog_offset);
                 if dialog_data.len() < (state.dialog_offset + 1) as usize {
                     // Mark current quest complete
                     if !state.complete_quest_ids.contains(&(state.current_questline_id+state.current_quest_id)) {
@@ -45,17 +44,6 @@ pub fn render_dialog(
                         state.dialog_offset = 0;
                         return (false, get_time());
                     }
-                    // increment_quest(questlines, state);
-                    // state.current_questline_id =
-                    //     get_next_questline_id(questlines, state.current_questline_id);
-                    // let new_questline = questlines
-                    //     .iter()
-                    //     .find(|ql| ql.id == state.current_questline_id)
-                    //     .unwrap();
-                    // let next_quest = new_questline.quests.first().unwrap();
-                    // state.current_quest_id = next_quest
-                    //     .quest_id
-                    //     .unwrap_or(state.current_questline_id * 10);
                     return (false, get_time());
                 }
                 let current = &dialog_data[state.dialog_offset as usize];
@@ -70,11 +58,14 @@ pub fn render_dialog(
                 .close_button(false)
                 .movable(false)
                 .ui(&mut root_ui(), |ui| {
-                    ui.label(None, &current.speaker);
+                    let mut speaker = current.speaker.clone();
+                    speaker = speaker.replace("<name>", &state.username);
+                    ui.label(None, &speaker);
                     ui.label(None, "");
                     // ui.label(vec2(50., 50.), &current.dialog);
                     // let label_size = ui.calc_size(&current.dialog);
-                    let label_text = &current.dialog;
+                    let mut label_text = current.dialog.clone();
+                    label_text = label_text.replace("<name>", &state.username);
                     let mut current_width = 0.;
                     let sliced_text = label_text.split_whitespace();
                     let mut wrapped_text = String::new();
@@ -105,9 +96,10 @@ pub fn render_dialog(
                 );
                 //
                 if is_key_pressed(KeyCode::Space) && get_time() - open_time > 1f64 {
+                    state.dialog_offset+=1;
                     if current.quest_id.is_some() {
-                        state.dialog_offset = 0;
                         state.current_quest_id = current.quest_id.unwrap();
+                        state.dialog_offset = 0;
                         info!("Quest updated: {}", state.current_quest_id);
                         return (true, get_time());
                     }

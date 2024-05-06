@@ -65,12 +65,12 @@ pub async fn import_quests(asset_path: &str) -> GameData {
     }
 }
 
-pub fn get_quest_data(quest_id: u16, questlines: &Vec<Questline>) -> Option<Quest> {
-    for questline in questlines {
-        for quest in &questline.quests {
-            if quest.quest_id.is_some_and(|id| id == quest_id) {
-                return Some(quest.clone());
-            }
+pub fn get_quest_data(questlines: &Vec<Questline>, state: &ClientState) -> Option<Quest> {
+    let questline = questlines.iter().find(|ql|ql.id==state.current_questline_id);
+    if let Some(questline) = questline {
+        let quest = questline.quests.iter().find(|q|q.quest_id.is_some() && q.quest_id.unwrap()==state.current_quest_id);
+        if quest.is_some() {
+            return Some(quest.unwrap().clone());
         }
     }
     return None;

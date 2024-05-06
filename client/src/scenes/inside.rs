@@ -2,6 +2,7 @@
 //     net::TcpStream, sync::{Arc, Mutex}
 // };
 
+use git2::Object;
 use ::glam::f32::vec2 as glam_vec2;
 use common::ClientState;
 use macroquad::{
@@ -131,36 +132,54 @@ pub async fn render_inside(
         speed: vec2(0., 0.),
     };
 
-    let mut relevant_objects = Vec::new();
-    for obj in &game_data.object_locations {
-        let mut relevant = false;
-        if obj.loc_id == state.location {
-            if obj.relevant_quest_ids.is_none() {
-                relevant = true;
-            } else {
-                if obj
-                    .relevant_quest_ids
-                    .clone()
-                    .unwrap()
-                    .contains(&state.current_quest_id)
-                {
-                    relevant = true;
-                }
-            }
-        }
-        if relevant {
-            info!(
-                "OBJECT (\n\tID: {}\n\tPOS: ({}, {})\n)",
-                obj.object_id, obj.position.x, obj.position.y
-            );
-            relevant_objects.push(obj);
-        }
-    }
+    // let mut relevant_objects = Vec::new();
+    // for obj in &game_data.object_locations {
+    //     let mut relevant = false;
+    //     if obj.loc_id == state.location {
+    //         if obj.relevant_quest_ids.is_none() {
+    //             relevant = true;
+    //         } else {
+    //             if obj
+    //                 .relevant_quest_ids
+    //                 .clone()
+    //                 .unwrap()
+    //                 .contains(&state.current_quest_id)
+    //             {
+    //                 relevant = true;
+    //             }
+    //         }
+    //     }
+    //     if relevant {
+    //         info!(
+    //             "OBJECT (\n\tID: {}\n\tPOS: ({}, {})\n)",
+    //             obj.object_id, obj.position.x, obj.position.y
+    //         );
+    //         relevant_objects.push(obj);
+    //     }
+    // }
 
     let mut open_time = get_time();
     let mut done_dialog = true;
 
     loop {
+        // Relevant Objects
+        let mut relevant_objects = Vec::new();
+        for obj in &game_data.object_locations {
+            let mut relevant = false;
+            if obj.loc_id == state.location {
+                if obj.relevant_quest_ids.is_none() {
+                    relevant = true;
+                } else {
+                    let relevant_quest_ids = obj.relevant_quest_ids.clone().unwrap();
+                    if relevant_quest_ids.contains(&(state.current_questline_id+state.current_quest_id)) {
+                        relevant = true;
+                    }
+                }
+            }
+            if relevant {
+                relevant_objects.push(obj);
+            }
+        }
         // Register ESC to leave building (this will change... esc will close the game and there will be a location to walk to to exit the building)
         if is_key_pressed(KeyCode::Escape) {
             state.location = String::from("outside");
@@ -261,7 +280,7 @@ pub async fn render_inside(
             world.move_v(player.collider, player.speed.y * -256. * get_frame_time());
         }
         // Quest Data
-        let current_quest = get_quest_data(state.current_quest_id, &game_data.questlines)
+        let current_quest = get_quest_data(&game_data.questlines, &state)
             .unwrap_or(Quest {
                 speaker: "".to_string(),
                 dialog: "ERROR FINDING QUEST".to_string(),
@@ -282,17 +301,15 @@ pub async fn render_inside(
                 let quest = current_quest.clone();
                 let completion_type = quest.completion.clone().unwrap().completion_type;
                 if completion_type.eq_ignore_ascii_case("interact") {
-                    let object = match &quest.completion {
-                        Some(x) => &x.interact_object_id,
-                        None => &None,
-                    };
-                    if let Some(object) = object {
-                        for obj in &game_data.object_locations {
-                            if obj.object_id.eq_ignore_ascii_case(&object) {
-                                let obj_location = obj;
+                    let object = quest.completion.unwrap().interact_object_id;
+                    if object.is_some() {
+                        let object_id = object.unwrap();
+                        for obj in &relevant_objects {
+                            if obj.object_id.eq_ignore_ascii_case(&object_id) {
+                                // let obj_location = obj;
                                 let player_pos = world.actor_pos(player.collider) / 32.;
-                                if player_pos.abs_diff_eq(glam2mac(obj_location.position), 3.) {
-                                    info!("Interacted with '{}'", object);
+                                if player_pos.distance(glam2mac(obj.position))< 3. {
+                                    info!("Interacted with '{}'", object_id);
                                     done_dialog = false;
                                     state.complete_quest_ids.push(state.current_questline_id+state.current_quest_id);
                                     state.dialog_offset += 1;

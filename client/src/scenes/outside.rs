@@ -74,6 +74,8 @@ pub async fn render_outside(
             }
         }
         root_ui().pop_skin();
+        root_ui().pop_skin();
+        root_ui().pop_skin();
         if state.current_questline_id == 0 && state.current_quest_id == 0 && !done_dialog {
             let f = render_dialog(&game_data.questlines, open_time, state);
             open_time = f.1;
